@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff } from "lucide-react";
 
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
@@ -71,6 +71,19 @@ const fileToB64 = (file) =>
     r.onerror = rej;
     r.readAsDataURL(file);
   });
+// Zmenší fotku na max 1600 px a zkomprimuje do JPEG, aby prošla limitem funkce a šla rychle nahoru.
+async function shrinkImage(file, max = 1600) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const dataUrl = c.toDataURL("image/jpeg", 0.85);
+    return { b64: dataUrl.split(",")[1], type: "image/jpeg", preview: dataUrl };
+  } finally { URL.revokeObjectURL(url); }
+}
 
 let voice = null;
 function speak(text) {
@@ -259,11 +272,20 @@ function AddLesson({ data, setData, back, openLesson }) {
   async function onFile(e) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const b64 = await fileToB64(f);
-    setPreview(f.type.startsWith("image") ? URL.createObjectURL(f) : null);
-    const block = f.type === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } }
-      : { type: "image", source: { type: "base64", media_type: f.type || "image/jpeg", data: b64 } };
+    let block;
+    if (f.type === "application/pdf") {
+      setPreview(null);
+      block = { type: "document", source: { type: "base64", media_type: "application/pdf", data: await fileToB64(f) } };
+    } else {
+      try {
+        const s = await shrinkImage(f);
+        setPreview(s.preview);
+        block = { type: "image", source: { type: "base64", media_type: s.type, data: s.b64 } };
+      } catch {
+        setPreview(URL.createObjectURL(f));
+        block = { type: "image", source: { type: "base64", media_type: f.type || "image/jpeg", data: await fileToB64(f) } };
+      }
+    }
     run([block, { type: "text", text: "Extract the learning material from this." }]);
   }
   return (
