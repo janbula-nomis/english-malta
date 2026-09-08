@@ -27,6 +27,7 @@ function normalize(d) {
 export async function loadData() {
   const pin = getPin();
   try {
+    if (!SHEETS_URL) throw new Error("Chybí VITE_SHEETS_URL v Netlify (Environment variables) – po doplnění spusť nový deploy.");
     const r = await fetch(`${SHEETS_URL}?token=${encodeURIComponent(pin)}`);
     const j = await r.json();
     if (j.error) throw new Error(j.error === "unauthorized" ? "Špatný PIN" : j.error);
@@ -61,11 +62,13 @@ export function saveData(next) {
   chain = chain.then(async () => {
     const ops = diffOps(last || EMPTY, snapshot);
     if (!ops.length) return;
+    if (!SHEETS_URL) { onError("Chybí VITE_SHEETS_URL v Netlify – data se ukládají jen v tomto zařízení."); return; }
     try {
       const r = await fetch(SHEETS_URL, { method: "POST", body: JSON.stringify({ token: getPin(), ops }) });
       const j = await r.json();
       if (j.error) throw new Error(j.error);
       last = snapshot;
+      onError("", true);
     } catch (e) {
       onError("Uložení do tabulky selhalo: " + e.message + ". Data zůstávají v zařízení, zkusím to znovu při další změně.");
     }

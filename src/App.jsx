@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut } from "lucide-react";
+import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff } from "lucide-react";
+
+const VERSION = "1.1.0";
 
 import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
@@ -90,7 +92,7 @@ const css = `
 .ef *{box-sizing:border-box}
 .ef button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;padding:0}
 .ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:3px solid ${C.blu};outline-offset:2px}
-.scr{flex:1;padding:20px 20px 96px;overflow-y:auto}
+.scr{flex:1;padding:36px 20px 96px;overflow-y:auto}
 .nav{position:sticky;bottom:0;background:#fff;border-top:2px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
 .ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:${C.mute};width:80px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
 .nav button.on{color:${C.blu};background:${C.seaSoft};border:2px solid #84D8FF}
@@ -152,7 +154,7 @@ function Today({ data, go, name }) {
   return (
     <div className="scr">
       <div className="mute" style={{ textTransform: "capitalize" }}>{date}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h1 className="h1" style={{ marginTop: 2, marginBottom: 12 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</h1><img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12 }} /></div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h1 className="h1" style={{ marginTop: 2, marginBottom: 12 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</h1><div style={{ display: "flex", gap: 8, alignItems: "center" }}><button onClick={() => go("account")} aria-label="Účet" style={{ color: C.blu }}><UserCircle size={30} /></button><img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12 }} /></div></div>
       <div className="panel" style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <Ring value={due} max={Math.max(due, 20)} label="K opakování" />
         <div>
@@ -594,6 +596,22 @@ function Stats({ data }) {
   );
 }
 
+function Account({ back, logout }) {
+  return (
+    <div className="scr">
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Zpět</button>
+      <h1 className="h1" style={{ marginTop: 10 }}>Účet</h1>
+      <div className="panel" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <UserCircle size={40} color={C.blu} />
+        <div><div style={{ fontWeight: 800 }}>Jan</div><div className="soft">Přihlášen PINem · data v Google tabulce</div></div>
+      </div>
+      <div className="soft" style={{ marginTop: 16 }}>Odhlášením se z tohoto zařízení smaže PIN i místní kopie dat. Po opětovném přihlášení se vše načte z tabulky.</div>
+      <button className="pri" style={{ marginTop: 16, background: C.red, boxShadow: "0 4px 0 #C41F1F" }} onClick={logout}><LogOut size={18} /> Odhlásit</button>
+      <div className="mute" style={{ marginTop: 24 }}>Verze aplikace {VERSION}</div>
+    </div>
+  );
+}
+
 function PinScreen({ onDone }) {
   const [pin, setP] = useState("");
   return (
@@ -603,7 +621,7 @@ function PinScreen({ onDone }) {
       {!isConfigured() && <Err msg="Chybí VITE_SHEETS_URL v nastavení Netlify (adresa Apps Script webové aplikace)." />}
       <div className="soft" style={{ marginBottom: 10 }}>Zadej PIN aplikace.</div>
       <input type="text" inputMode="numeric" value={pin} onChange={(e) => setP(e.target.value)} placeholder="PIN" onKeyDown={(e) => e.key === "Enter" && pin && onDone(pin)} />
-      <button className="pri" style={{ marginTop: 12 }} disabled={!pin} onClick={() => onDone(pin)}>Pokračovat</button>
+      <button className="pri" style={{ marginTop: 12 }} disabled={!pin} onClick={() => onDone(pin)}><LogIn size={18} /> Přihlásit</button>
     </div>
   );
 }
@@ -617,19 +635,21 @@ export default function App() {
   const [talkLesson, setTalkLesson] = useState(null);
   const [banner, setBanner] = useState("");
   const [loadErr, setLoadErr] = useState("");
+  const [online, setOnline] = useState(null);
 
   async function boot() {
     setLoadErr("");
     try {
       const r = await loadData();
       setData(r.data);
+      setOnline(r.online);
       if (!r.online) setBanner("Offline režim: " + (r.error || "") + " Používám data uložená v zařízení.");
     } catch (e) {
       clearPin(); setNeedPin(true); setLoadErr(e.message);
     }
   }
   useEffect(() => {
-    setErrorHandler((m) => setBanner(m));
+    setErrorHandler((m, ok) => { if (ok === true) { setOnline(true); return; } setOnline(false); setBanner(m); });
     window.speechSynthesis?.getVoices();
     if (!needPin) boot();
   }, []);
@@ -640,25 +660,34 @@ export default function App() {
 
   const go = (v) => setView(v);
   const back = () => { setView(null); setTalkLesson(null); };
-  const logout = () => { if (confirm("Odhlásit toto zařízení?")) { clearPin(); setData(null); setNeedPin(true); } };
+  const logout = () => { if (confirm("Odhlásit toto zařízení?")) { clearPin(); localStorage.removeItem("english:cache"); setData(null); setView(null); setTab("today"); setNeedPin(true); } };
   let body;
-  if (view === "review") body = <Review data={data} setData={setData} back={back} />;
+  if (view === "account") body = <Account back={back} logout={logout} />;
+  else if (view === "review") body = <Review data={data} setData={setData} back={back} />;
   else if (view === "add") body = <AddLesson data={data} setData={setData} back={back} openLesson={(id) => { setLessonId(id); setTab("lessons"); setView("lesson"); }} />;
   else if (view === "lesson") body = <LessonDetail data={data} setData={setData} id={lessonId} back={back} talk={(l) => { setTalkLesson(l); setView("talk"); }} />;
   else if (view === "talk") body = <Talk data={data} setData={setData} back={back} lesson={talkLesson} />;
   else if (tab === "today") body = <Today data={data} go={go} name="Jane" />;
   else if (tab === "lessons") body = <Lessons data={data} go={go} open={(id) => { setLessonId(id); setView("lesson"); }} />;
   else if (tab === "words") body = <Review data={data} setData={setData} back={() => setTab("today")} />;
-  else body = <><Stats data={data} /><button className="mute" onClick={logout} style={{ position: "absolute", top: 20, right: 20, display: "flex", gap: 4, alignItems: "center" }}><LogOut size={14} /> Odhlásit</button></>;
+  else body = <><Stats data={data} /><button onClick={() => go("account")} aria-label="Účet" style={{ position: "absolute", top: 20, right: 20, color: C.blu }}><UserCircle size={30} /></button></>;
   const tabs = [["today", "Dnes", Home], ["lessons", "Lekce", BookOpen], ["words", "Slovíčka", Layers], ["stats", "Statistiky", BarChart3]];
   return (
     <div className="ef" style={{ position: "relative" }}>
       <style>{css}</style>
-      {banner && <div style={{ position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)", maxWidth: 400, width: "calc(100% - 32px)", background: C.amberSoft, color: C.amber, padding: "10px 14px", borderRadius: 12, fontSize: 13, zIndex: 10 }}>{banner}</div>}
+      {banner && <div style={{ position: "fixed", top: 36, left: "50%", transform: "translateX(-50%)", maxWidth: 400, width: "calc(100% - 32px)", background: C.amberSoft, color: C.amber, padding: "10px 14px", borderRadius: 12, fontSize: 13, zIndex: 10 }}>{banner}</div>}
+      {!view && (
+        <div style={{ position: "absolute", top: 8, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <span className="pill" style={online === null ? { background: C.bg, color: C.mute } : online ? { background: C.greenSoft, color: C.green } : { background: C.redSoft, color: C.red }}>
+            {online === null ? "…" : online ? <><Wifi size={11} style={{ verticalAlign: "-1px" }} /> online</> : <><WifiOff size={11} style={{ verticalAlign: "-1px" }} /> offline</>}
+          </span>
+        </div>
+      )}
       {body}
       {!view && (
         <nav className="nav">
           {tabs.map(([id, lbl, Icon]) => <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}><Icon size={20} />{lbl}</button>)}
+          <span style={{ position: "absolute", right: 10, bottom: 2, fontSize: 9, color: C.mute, fontWeight: 700 }}>v{VERSION}</span>
         </nav>
       )}
     </div>
