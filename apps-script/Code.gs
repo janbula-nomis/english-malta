@@ -1,5 +1,6 @@
 // Google Apps Script – API nad tabulkou. Nasadit jako Webová aplikace (Spustit jako: já, Přístup: kdokoli).
-// Ve Vlastnostech skriptu nastav TOKEN = stejný PIN jako APP_PIN na Netlify.
+// PIN aplikace – stejný zadej v Netlify jako APP_PIN. Změň, pokud chceš jiný.
+const TOKEN = "736251";
 
 const SHEETS = {
   lessons:  ["id", "title", "level", "grammar", "created"],
@@ -53,7 +54,7 @@ function remove_(name, idsToDelete) {
   for (let i = ids.length - 1; i >= 1; i--) if (idsToDelete.includes(ids[i])) sh.deleteRow(i + 1);
 }
 function ok_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
-function auth_(t) { return t && t === PropertiesService.getScriptProperties().getProperty("TOKEN"); }
+function auth_(t) { return !!t && t === TOKEN; }
 
 function doGet(e) {
   if (!auth_(e.parameter.token)) return ok_({ error: "unauthorized" });

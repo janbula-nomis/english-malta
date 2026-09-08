@@ -6,19 +6,25 @@ import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const MY_LEVEL = "A2"; // skupina A2.2 v EF
 const C = {
-  ink: "#1B2431",
-  soft: "#5B6675",
-  mute: "#9AA3AF",
-  line: "#E4E7EB",
-  bg: "#F3F5F7",
-  sea: "#1E5A8A",
-  seaSoft: "#E3EEF7",
-  green: "#2F7A45",
-  greenSoft: "#E4F2E8",
-  amber: "#A86A12",
-  amberSoft: "#FBF0DC",
-  red: "#B23A3A",
-  redSoft: "#F9E4E4",
+  ink: "#3C3C3C",
+  soft: "#777777",
+  mute: "#AFAFAF",
+  line: "#E5E5E5",
+  bg: "#F7F7F7",
+  sea: "#1CB0F6",
+  seaSoft: "#DDF4FF",
+  green: "#58A700",
+  greenSoft: "#D7FFB8",
+  amber: "#CD7900",
+  amberSoft: "#FFF1C4",
+  red: "#EA2B2B",
+  redSoft: "#FFDFE0",
+  grn: "#58CC02",
+  grnDark: "#46A302",
+  blu: "#1CB0F6",
+  bluDark: "#1899D6",
+  yel: "#FFC800",
+  yelDark: "#E5A800",
 };
 const DAY = 86400000;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -80,30 +86,33 @@ function speak(text) {
 }
 
 const css = `
-.ef{font-family:Inter,-apple-system,"Segoe UI",Roboto,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#fff;font-size:15px;line-height:1.5}
+.ef{font-family:Nunito,"Segoe UI",system-ui,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#fff;font-size:16px;line-height:1.45;font-weight:600}
 .ef *{box-sizing:border-box}
 .ef button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;padding:0}
-.ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:2px solid ${C.sea};outline-offset:2px}
-.scr{flex:1;padding:20px 20px 90px;overflow-y:auto}
-.nav{position:sticky;bottom:0;background:#fff;border-top:1px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
-.nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:${C.mute};width:80px}
-.nav button.on{color:${C.sea}}
-.h1{font-size:24px;font-weight:600;letter-spacing:-0.01em;margin:0 0 14px}
-.mute{color:${C.mute};font-size:12px}
-.soft{color:${C.soft};font-size:13px}
-.panel{background:${C.bg};border-radius:18px;padding:16px}
-.tile{border:1px solid ${C.line};border-radius:18px;padding:14px;text-align:left;width:100%}
-.pri{background:${C.ink};color:#fff;border-radius:999px;padding:11px 20px;font-weight:500;display:inline-flex;align-items:center;gap:8px}
-.pri:disabled{opacity:.5;cursor:default}
-.sec{border:1px solid ${C.line};border-radius:999px;padding:9px 16px;font-weight:500;display:inline-flex;align-items:center;gap:8px}
-.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid ${C.line}}
-.pill{font-size:11px;padding:2px 9px;border-radius:999px;display:inline-block}
-.g{border-radius:14px;padding:12px 4px;text-align:center;width:100%}
-.g b{display:block;font-weight:500}
-.g span{font-size:11px}
-.bubble{border-radius:16px;padding:10px 14px;max-width:85%;font-size:14px}
-.ef textarea,.ef input[type=text]{width:100%;border:1px solid ${C.line};border-radius:12px;padding:10px 12px;font:inherit;background:#fff}
-@media (prefers-reduced-motion:no-preference){.g:active,.pri:active{transform:scale(.97)}}
+.ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:3px solid ${C.blu};outline-offset:2px}
+.scr{flex:1;padding:20px 20px 96px;overflow-y:auto}
+.nav{position:sticky;bottom:0;background:#fff;border-top:2px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
+.ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:${C.mute};width:80px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
+.nav button.on{color:${C.blu};background:${C.seaSoft};border:2px solid #84D8FF}
+.h1{font-size:26px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px}
+.mute{color:${C.mute};font-size:13px;font-weight:700}
+.soft{color:${C.soft};font-size:14px;font-weight:600}
+.ef .panel{background:#fff;border:2px solid ${C.line};border-radius:16px;padding:16px}
+.ef .tile{border:2px solid ${C.line};border-bottom-width:4px;border-radius:16px;padding:14px;text-align:left;width:100%;background:#fff}
+.ef .tile:active{border-bottom-width:2px;transform:translateY(2px)}
+.ef .pri{background:${C.grn};color:#fff;border-radius:16px;padding:13px 22px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 0 ${C.grnDark}}
+.ef .pri:active{box-shadow:none;transform:translateY(4px)}
+.ef .pri:disabled{background:${C.line};color:${C.mute};box-shadow:0 4px 0 #cfcfcf;cursor:default}
+.ef .sec{border:2px solid ${C.line};border-radius:14px;padding:9px 16px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:13px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 0 ${C.line};color:${C.blu};background:#fff}
+.ef .sec:active{box-shadow:none;transform:translateY(3px)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:2px solid ${C.line}}
+.pill{font-size:11px;padding:3px 10px;border-radius:999px;display:inline-block;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.ef .g{border-radius:16px;padding:12px 4px;text-align:center;width:100%;border:2px solid transparent;border-bottom-width:5px}
+.ef .g:active{border-bottom-width:2px;transform:translateY(3px)}
+.g b{display:block;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:.04em}
+.g span{font-size:11px;font-weight:700}
+.ef .bubble{border-radius:18px;padding:11px 15px;max-width:85%;font-size:15px;border:2px solid ${C.line}}
+.ef textarea,.ef input[type=text]{width:100%;border:2px solid ${C.line};border-radius:14px;padding:12px 14px;font:inherit;background:#fff;font-weight:600}
 `;
 
 function Pill({ tone = "sea", children }) {
@@ -115,9 +124,9 @@ function Ring({ value, max, label }) {
   const p = max ? Math.min(1, value / max) : 0;
   return (
     <svg width="84" height="84" viewBox="0 0 84 84" aria-label={label}>
-      <circle cx="42" cy="42" r={r} fill="none" stroke={C.line} strokeWidth="8" />
-      <circle cx="42" cy="42" r={r} fill="none" stroke={C.sea} strokeWidth="8" strokeDasharray={c} strokeDashoffset={c * (1 - p)} strokeLinecap="round" transform="rotate(-90 42 42)" />
-      <text x="42" y="48" textAnchor="middle" fontSize="20" fontWeight="600" fill={C.ink}>{value}</text>
+      <circle cx="42" cy="42" r={r} fill="none" stroke={C.line} strokeWidth="10" />
+      <circle cx="42" cy="42" r={r} fill="none" stroke={C.grn} strokeWidth="10" strokeDasharray={c} strokeDashoffset={c * (1 - p)} strokeLinecap="round" transform="rotate(-90 42 42)" />
+      <text x="42" y="48" textAnchor="middle" fontSize="22" fontWeight="800" fill={C.ink}>{value}</text>
     </svg>
   );
 }
@@ -143,7 +152,7 @@ function Today({ data, go, name }) {
   return (
     <div className="scr">
       <div className="mute" style={{ textTransform: "capitalize" }}>{date}</div>
-      <h1 className="h1" style={{ marginTop: 2 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h1 className="h1" style={{ marginTop: 2, marginBottom: 12 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</h1><img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12 }} /></div>
       <div className="panel" style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <Ring value={due} max={Math.max(due, 20)} label="K opakování" />
         <div>
@@ -154,23 +163,23 @@ function Today({ data, go, name }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
         <button className="tile" onClick={() => go("add")}>
-          <Camera size={20} color={C.sea} />
+          <Camera size={24} color={C.blu} />
           <div style={{ fontWeight: 500, marginTop: 8 }}>Nová lekce</div>
           <div className="mute">vyfotit materiál</div>
         </button>
         <button className="tile" onClick={() => go("talk")}>
-          <Mic size={20} color={C.sea} />
+          <Mic size={24} color={C.grn} />
           <div style={{ fontWeight: 500, marginTop: 8 }}>Mluvit</div>
           <div className="mute">konverzace s lektorem</div>
         </button>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
         <span className="mute">Opakování za týden</span>
-        <span className="mute">{known} umím · série {streak} {streak === 1 ? "den" : streak < 5 ? "dny" : "dní"}</span>
+        <span className="pill" style={{ background: C.amberSoft, color: C.amber }}>{streak} {streak === 1 ? "den" : streak < 5 ? "dny" : "dní"} v řadě</span>
       </div>
       <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 48, marginTop: 8 }}>
         {days.map((x) => (
-          <div key={x.d} style={{ flex: 1, height: `${Math.max(8, (x.n / mx) * 100)}%`, background: x.n ? C.sea : C.line, borderRadius: 4 }} title={`${x.n}`} />
+          <div key={x.d} style={{ flex: 1, height: `${Math.max(8, (x.n / mx) * 100)}%`, background: x.n ? C.grn : C.line, borderRadius: 6 }} title={`${x.n}`} />
         ))}
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -409,8 +418,8 @@ function Review({ data, setData, back }) {
         <button className="soft" onClick={back}><X size={18} /></button>
         <span className="mute">{done + 1} / {total.current}</span>
       </div>
-      <div style={{ height: 4, background: C.line, borderRadius: 2, margin: "12px 0 20px" }}><div style={{ width: `${(done / total.current) * 100}%`, height: 4, background: C.sea, borderRadius: 2 }} /></div>
-      <button onClick={() => setFlip(true)} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", cursor: flip ? "default" : "pointer" }}>
+      <div style={{ height: 16, background: C.line, borderRadius: 8, margin: "12px 0 20px" }}><div style={{ width: `${Math.max(4, (done / total.current) * 100)}%`, height: 16, background: C.grn, borderRadius: 8, transition: "width .2s" }} /></div>
+      <button onClick={() => setFlip(true)} className="panel" style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", cursor: flip ? "default" : "pointer", borderBottomWidth: 4 }}>
         <Pill>{w.lv} · {lesson?.title}</Pill>
         <div style={{ fontSize: 32, fontWeight: 600, marginTop: 24, letterSpacing: "-0.01em" }}>{w.en}</div>
         <div className="soft" style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center" }}>{w.ipa}<span onClick={(e) => { e.stopPropagation(); speak(w.en); }}><Volume2 size={16} color={C.sea} /></span></div>
@@ -425,9 +434,9 @@ function Review({ data, setData, back }) {
       </button>
       {flip ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
-          <button className="g" style={{ background: C.redSoft, color: C.red }} onClick={() => answer(0)}><b>Nevím</b><span>{nextLabel(w, 0)}</span></button>
-          <button className="g" style={{ background: C.amberSoft, color: C.amber }} onClick={() => answer(1)}><b>Těžké</b><span>{nextLabel(w, 1)}</span></button>
-          <button className="g" style={{ background: C.greenSoft, color: C.green }} onClick={() => answer(2)}><b>Umím</b><span>{nextLabel(w, 2)}</span></button>
+          <button className="g" style={{ background: C.red, color: "#fff", borderColor: "#C41F1F" }} onClick={() => answer(0)}><b>Nevím</b><span>{nextLabel(w, 0)}</span></button>
+          <button className="g" style={{ background: C.yel, color: "#5a4300", borderColor: C.yelDark }} onClick={() => answer(1)}><b>Těžké</b><span>{nextLabel(w, 1)}</span></button>
+          <button className="g" style={{ background: C.grn, color: "#fff", borderColor: C.grnDark }} onClick={() => answer(2)}><b>Umím</b><span>{nextLabel(w, 2)}</span></button>
         </div>
       ) : <button className="pri" style={{ marginTop: 12, alignSelf: "center" }} onClick={() => setFlip(true)}>Ukázat překlad</button>}
     </div>
@@ -506,7 +515,7 @@ function Talk({ data, setData, back, lesson }) {
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginTop: 14, overflowY: "auto" }}>
         {msgs.map((m, k) => (
-          <div key={k} className="bubble" style={m.role === "user" ? { background: C.seaSoft, color: C.sea, alignSelf: "flex-end" } : { background: C.bg }}>
+          <div key={k} className="bubble" style={m.role === "user" ? { background: C.seaSoft, color: "#1899D6", alignSelf: "flex-end", borderColor: "#84D8FF" } : { background: "#fff" }}>
             {m.role === "assistant" && <button onClick={() => speak(m.text)} style={{ marginRight: 6, verticalAlign: "middle" }}><Volume2 size={14} color={C.sea} /></button>}
             {m.text}
             {m.fix && <div style={{ fontSize: 12, color: C.amber, marginTop: 4 }}>{m.fix}</div>}
@@ -519,7 +528,7 @@ function Talk({ data, setData, back, lesson }) {
       <div style={{ textAlign: "center", margin: "14px 0 8px" }}>
         {hasSR ? (
           <>
-            <button onClick={rec ? stopRec : startRec} disabled={busy} aria-label={rec ? "Zastavit" : "Mluvit"} style={{ width: 64, height: 64, borderRadius: "50%", background: rec ? C.red : C.ink, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <button onClick={rec ? stopRec : startRec} disabled={busy} aria-label={rec ? "Zastavit" : "Mluvit"} style={{ width: 72, height: 72, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", boxShadow: `0 5px 0 ${rec ? "#C41F1F" : C.grnDark}`, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
               {rec ? <Square size={22} /> : <Mic size={26} />}
             </button>
             <div className="mute" style={{ marginTop: 4 }}>{rec ? "Poslouchám… klepni pro odeslání" : "Klepni a mluv"}</div>
@@ -556,7 +565,7 @@ function Stats({ data }) {
         {ws.length < 8 ? <div className="soft" style={{ marginTop: 4 }}>Skupina A2.2. Přidej lekce a zopakuj slovíčka, pak úroveň zpřesním.</div> : (
           <div style={{ fontSize: 26, fontWeight: 600, marginTop: 2 }}>{level}<span className="soft" style={{ fontWeight: 400, fontSize: 14 }}> · {strong ? "silné" : "rozpracované"}</span></div>
         )}
-        <div style={{ display: "flex", gap: 3, marginTop: 10 }}>{LEVELS.map((lv, i) => <div key={lv} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= LEVELS.indexOf(level) && ws.length >= 8 ? C.sea : C.line }} />)}</div>
+        <div style={{ display: "flex", gap: 3, marginTop: 10 }}>{LEVELS.map((lv, i) => <div key={lv} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= LEVELS.indexOf(level) && ws.length >= 8 ? C.grn : C.line }} />)}</div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{LEVELS.map((lv) => <span key={lv} className="mute" style={{ fontSize: 10 }}>{lv}</span>)}</div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", marginTop: 14 }}>
@@ -564,8 +573,8 @@ function Stats({ data }) {
         <div><div style={{ fontSize: 24, fontWeight: 600, color: C.green }}>{known}</div><div className="mute">umím</div></div>
         <div><div style={{ fontSize: 24, fontWeight: 600, color: C.amber }}>{learning}</div><div className="mute">učím se</div></div>
       </div>
-      <div style={{ height: 8, borderRadius: 4, display: "flex", overflow: "hidden", marginTop: 10, background: C.line }}>
-        <div style={{ width: `${pct(known)}%`, background: C.green }} /><div style={{ width: `${pct(learning)}%`, background: C.amber }} />
+      <div style={{ height: 14, borderRadius: 7, display: "flex", overflow: "hidden", marginTop: 10, background: C.line }}>
+        <div style={{ width: `${pct(known)}%`, background: C.grn }} /><div style={{ width: `${pct(learning)}%`, background: C.yel }} />
       </div>
       <div className="mute" style={{ marginTop: 4 }}>{fresh} nových, ještě neopakovaných</div>
       <div style={{ fontWeight: 500, margin: "20px 0 4px" }}>Slovíčka podle úrovně</div>
