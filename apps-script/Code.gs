@@ -7,8 +7,10 @@ const SHEETS = {
   words:    ["id", "lessonId", "en", "ipa", "cz", "ex", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last"],
   log:      ["id", "d", "wordId", "g"],
   sessions: ["id", "d", "topic", "turns", "ok", "errs"],
+  sentences: ["id", "d", "cz", "en", "wrong", "why", "type", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last"],
+  tests: ["id", "d", "scope", "lessonId", "total", "correct", "items", "retakeOf"],
 };
-const JSON_COLS = ["grammar", "errs"];
+const JSON_COLS = ["grammar", "errs", "items"];
 
 function sheet_(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

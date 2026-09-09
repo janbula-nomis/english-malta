@@ -30,7 +30,7 @@ export default async (req) => {
     },
     body: JSON.stringify({ model: env("CLAUDE_MODEL") || "claude-sonnet-5", max_tokens: 2000, ...body }),
   });
-  return new Response(await r.text(), { status: r.status, headers: { "Content-Type": "application/json" } });
+  return new Response(await r.text(), { status: r.status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 };
-const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
+const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json; charset=utf-8" } });
 export const config = { path: "/api/claude" };

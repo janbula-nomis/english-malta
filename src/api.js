@@ -2,7 +2,8 @@
 const SHEETS_URL = import.meta.env.VITE_SHEETS_URL;
 const CACHE = "english:cache";
 const PIN_KEY = "english:pin";
-const EMPTY = { lessons: [], words: [], log: [], sessions: [] };
+const EMPTY = { lessons: [], words: [], log: [], sessions: [], sentences: [], tests: [] };
+const SHEET_NAMES = ["lessons", "words", "log", "sessions", "sentences", "tests"];
 
 export const getPin = () => localStorage.getItem(PIN_KEY) || "";
 export const setPin = (p) => localStorage.setItem(PIN_KEY, p);
@@ -21,6 +22,8 @@ function normalize(d) {
     words: (d.words || []).map((w) => ({ ...w, id: String(w.id), lessonId: String(w.lessonId), ease: num(w.ease) || 2.5, interval: num(w.interval), reps: num(w.reps), lapses: num(w.lapses), due: num(w.due), seen: num(w.seen), last: num(w.last) })),
     log: (d.log || []).map((l) => ({ ...l, id: String(l.id), g: num(l.g) })),
     sessions: (d.sessions || []).map((s) => ({ ...s, id: String(s.id), turns: num(s.turns), ok: num(s.ok), errs: Array.isArray(s.errs) ? s.errs : [] })),
+    sentences: (d.sentences || []).map((x) => ({ ...x, id: String(x.id), ease: num(x.ease) || 2.5, interval: num(x.interval), reps: num(x.reps), lapses: num(x.lapses), due: num(x.due), seen: num(x.seen), last: num(x.last) })),
+    tests: (d.tests || []).map((t) => ({ ...t, id: String(t.id), total: num(t.total), correct: num(t.correct), items: Array.isArray(t.items) ? t.items : [], lessonId: t.lessonId ? String(t.lessonId) : null, retakeOf: t.retakeOf ? String(t.retakeOf) : null })),
   };
 }
 
@@ -45,7 +48,7 @@ export async function loadData() {
 
 function diffOps(prev, next) {
   const ops = [];
-  for (const sheet of ["lessons", "words", "log", "sessions"]) {
+  for (const sheet of SHEET_NAMES) {
     const pm = new Map((prev[sheet] || []).map((x) => [x.id, JSON.stringify(x)]));
     const nm = new Map((next[sheet] || []).map((x) => [x.id, x]));
     const up = [...nm.values()].filter((x) => pm.get(x.id) !== JSON.stringify(x));
