@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell, Repeat, Puzzle, Map, MessagesSquare } from "lucide-react";
 
-const VERSION = "1.6.1";
+const VERSION = "1.6.2";
 
 import { IRREGULAR, PHRASAL, PARTICLES } from "./drillData.js";
 import { PHRASES } from "./phrasesData.js";
@@ -942,13 +942,13 @@ function Practice({ data, go }) {
         <MessageSquareText size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Věty z oprav")}</div><div className="mute">{ds ? `${ds} ${L("čeká na opakování")}` : data.sentences.length ? L("dnes vše hotovo") : L("vznikají z oprav v konverzaci")} · celkem {data.sentences.length}</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#CE82FF,#9B4DE0)", boxShadow: "0 5px 0 #7A35B8", marginBottom: 12 }} onClick={() => go("drill-irr")}>
-        <Repeat size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Nepravidelná slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "irr", IRREGULAR); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · tvary, věty, rychlopalba</div>
+        <Repeat size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Nepravidelná slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "irr", IRREGULAR); return `${L("procvičeno")} ${p.started} ${L("z")} ${p.total} · ${p.known} ${L("zvládnuto")}`; })()} · tvary, věty, rychlopalba</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#2EC4B6,#1B9C90)", boxShadow: "0 5px 0 #13736A", marginBottom: 12 }} onClick={() => go("drill-phr")}>
-        <Puzzle size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Frázová slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "phr", PHRASAL); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · význam, částice, věty</div>
+        <Puzzle size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Frázová slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "phr", PHRASAL); return `${L("procvičeno")} ${p.started} ${L("z")} ${p.total} · ${p.known} ${L("zvládnuto")}`; })()} · význam, částice, věty</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#FFC800,#E5A800)", boxShadow: "0 5px 0 #B38200", marginBottom: 12, color: "#3d2e00" }} onClick={() => go("drill-fr")}>
-        <MessagesSquare size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Hovorové fráze")}</div><div className="mute" style={{ color: "rgba(61,46,0,.75)" }}>{(() => { const p = drillProgress(data, "fr", PHRASES); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · věty a otázky pro každý den</div>
+        <MessagesSquare size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Hovorové fráze")}</div><div className="mute" style={{ color: "rgba(61,46,0,.75)" }}>{(() => { const p = drillProgress(data, "fr", PHRASES); return `${L("procvičeno")} ${p.started} ${L("z")} ${p.total} · ${p.known} ${L("zvládnuto")}`; })()} · věty a otázky pro každý den</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C", marginBottom: 12 }} onClick={() => go("talk")}>
         <Mic size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Konverzace")}</div><div className="mute">{L("lektor opravuje a nechá tě větu říct správně")}</div>
@@ -1098,7 +1098,7 @@ function Drill({ data, setData, back, kind }) {
       <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
       <h1 className="h1" style={{ marginTop: 10 }}>{title}</h1>
       <div className="panel" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute">{L("Zvládnuto")}</span><span className="mute">{prog.known} z {prog.total} · {L("rozpracováno")} {prog.started - prog.known}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute">{L("Postup")}</span><span className="mute">{L("procvičeno")} {prog.started} {L("z")} {prog.total} · {L("zvládnuto")} {prog.known}</span></div>
         <div style={{ height: 14, borderRadius: 7, display: "flex", overflow: "hidden", marginTop: 8, background: C.line }}>
           <div style={{ width: `${(prog.known / prog.total) * 100}%`, background: C.grn }} /><div style={{ width: `${((prog.started - prog.known) / prog.total) * 100}%`, background: C.yel }} />
         </div>
@@ -1384,7 +1384,7 @@ function Stats({ data }) {
       )}
       <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>{L("Drily")}</div>
       {[["irr", L("Nepravidelná slovesa"), IRREGULAR], ["phr", L("Frázová slovesa"), PHRASAL], ["fr", L("Hovorové fráze"), PHRASES]].map(([k, n, l]) => { const p = drillProgress(data, k, l); const ds = data.drill.filter((d) => d.kind === k); const r = ds.reduce((a, d) => a + (d.right || 0), 0), w = ds.reduce((a, d) => a + (d.wrong || 0), 0); return (
-        <div key={k} className="row"><span>{n}</span><span className="soft">{p.known} z {p.total} · {L("úspěšnost")} {r + w ? Math.round((r / (r + w)) * 100) : 0} %</span></div>
+        <div key={k} className="row"><span>{n}</span><span className="soft">{p.started} {L("z")} {p.total} {L("procvičeno")} · {p.known} {L("zvládnuto")} · {L("úspěšnost")} {r + w ? Math.round((r / (r + w)) * 100) : 0} %</span></div>
       ); })}
       <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>{L("Testy")}</div>
       {data.tests.length === 0 ? <div className="soft">{L("Zatím žádný.")}</div> : (
