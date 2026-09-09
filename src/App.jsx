@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff } from "lucide-react";
 
-const VERSION = "1.1.1";
+const VERSION = "1.2.0";
 
 import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
@@ -101,7 +101,7 @@ function speak(text) {
 }
 
 const css = `
-.ef{font-family:Nunito,"Segoe UI",system-ui,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#fff;font-size:16px;line-height:1.45;font-weight:600}
+.ef{font-family:Nunito,"Segoe UI",system-ui,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#EAF1F8;font-size:16px;line-height:1.45;font-weight:600}
 .ef *{box-sizing:border-box}
 .ef button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;padding:0}
 .ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:3px solid ${C.blu};outline-offset:2px}
@@ -109,11 +109,11 @@ const css = `
 .nav{position:sticky;bottom:0;background:#fff;border-top:2px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
 .ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:${C.mute};width:80px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
 .nav button.on{color:${C.blu};background:${C.seaSoft};border:2px solid #84D8FF}
-.h1{font-size:26px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px}
+.h1{font-size:26px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px;color:#1179C7}
 .mute{color:${C.mute};font-size:13px;font-weight:700}
 .soft{color:${C.soft};font-size:14px;font-weight:600}
-.ef .panel{background:#fff;border:2px solid ${C.line};border-radius:16px;padding:16px}
-.ef .tile{border:2px solid ${C.line};border-bottom-width:4px;border-radius:16px;padding:14px;text-align:left;width:100%;background:#fff}
+.ef .panel{background:#fff;border:2px solid #D6E2EE;border-radius:16px;padding:16px}
+.ef .tile{border:2px solid #D6E2EE;border-bottom-width:4px;border-radius:16px;padding:14px;text-align:left;width:100%;background:#fff}
 .ef .tile:active{border-bottom-width:2px;transform:translateY(2px)}
 .ef .pri{background:${C.grn};color:#fff;border-radius:16px;padding:13px 22px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 0 ${C.grnDark}}
 .ef .pri:active{box-shadow:none;transform:translateY(4px)}
@@ -126,7 +126,12 @@ const css = `
 .ef .g:active{border-bottom-width:2px;transform:translateY(3px)}
 .g b{display:block;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:.04em}
 .g span{font-size:11px;font-weight:700}
-.ef .bubble{border-radius:18px;padding:11px 15px;max-width:85%;font-size:15px;border:2px solid ${C.line}}
+.ef .bubble{border-radius:18px;padding:11px 15px;max-width:85%;font-size:15px;border:2px solid #D6E2EE;background:#fff}
+.ef .hero{background:linear-gradient(160deg,#58CC02,#3E9E00);color:#fff;border-radius:22px;padding:18px;box-shadow:0 6px 0 #2F7A00}
+.ef .hero .mute,.ef .hero .soft{color:rgba(255,255,255,.85)}
+.ef .tileC{border:none;border-radius:18px;padding:16px;text-align:left;width:100%;color:#fff;display:block}
+.ef .tileC .mute{color:rgba(255,255,255,.8)}
+.ef .tileC:active{box-shadow:none !important;transform:translateY(5px)}
 .ef textarea,.ef input[type=text]{width:100%;border:2px solid ${C.line};border-radius:14px;padding:12px 14px;font:inherit;background:#fff;font-weight:600}
 `;
 
@@ -166,29 +171,44 @@ function Today({ data, go, name }) {
   const date = new Date().toLocaleDateString("cs-CZ", { weekday: "long", day: "numeric", month: "long" });
   return (
     <div className="scr">
-      <div className="mute" style={{ textTransform: "capitalize" }}>{date}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h1 className="h1" style={{ marginTop: 2, marginBottom: 12 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</h1><div style={{ display: "flex", gap: 8, alignItems: "center" }}><button onClick={() => go("account")} aria-label="Účet" style={{ color: C.blu }}><UserCircle size={30} /></button><img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12 }} /></div></div>
-      <div className="panel" style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <Ring value={due} max={Math.max(due, 20)} label="K opakování" />
-        <div>
-          <div style={{ fontWeight: 500 }}>Dnešní opakování</div>
-          <div className="soft">{due === 0 ? "Nic nečeká, vše zopakováno." : `${due} slovíček, asi ${Math.max(1, Math.round(due / 5))} min`}</div>
-          <button className="pri" style={{ marginTop: 10, padding: "8px 16px", fontSize: 14 }} onClick={() => go("review")} disabled={due === 0}>Začít</button>
+      <div className="hero">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div className="mute" style={{ textTransform: "capitalize" }}>{date}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.2 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={() => go("account")} aria-label="Účet" style={{ color: "#fff" }}><UserCircle size={30} /></button>
+            <img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12, border: "2px solid rgba(255,255,255,.6)" }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16 }}>
+          <svg width="84" height="84" viewBox="0 0 84 84" aria-label="K opakování">
+            <circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="10" />
+            <circle cx="42" cy="42" r="36" fill="none" stroke="#fff" strokeWidth="10" strokeDasharray={2 * Math.PI * 36} strokeDashoffset={2 * Math.PI * 36 * (1 - Math.min(1, due / Math.max(due, 20)))} strokeLinecap="round" transform="rotate(-90 42 42)" />
+            <text x="42" y="49" textAnchor="middle" fontSize="24" fontWeight="800" fill="#fff">{due}</text>
+          </svg>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17 }}>Dnešní opakování</div>
+            <div className="soft">{due === 0 ? "Nic nečeká, vše zopakováno." : `${due} slovíček, asi ${Math.max(1, Math.round(due / 5))} min`}</div>
+            <button className="pri" style={{ marginTop: 10, padding: "9px 18px", fontSize: 14, background: "#fff", color: C.grnDark, boxShadow: "0 4px 0 #CFE5BF" }} onClick={() => go("review")} disabled={due === 0}>Začít</button>
+          </div>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-        <button className="tile" onClick={() => go("add")}>
-          <Camera size={24} color={C.blu} />
-          <div style={{ fontWeight: 500, marginTop: 8 }}>Nová lekce</div>
+        <button className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C" }} onClick={() => go("add")}>
+          <Camera size={26} />
+          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 17 }}>Nová lekce</div>
           <div className="mute">vyfotit materiál</div>
         </button>
-        <button className="tile" onClick={() => go("talk")}>
-          <Mic size={24} color={C.grn} />
-          <div style={{ fontWeight: 500, marginTop: 8 }}>Mluvit</div>
+        <button className="tileC" style={{ background: "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: "0 5px 0 #B85600" }} onClick={() => go("talk")}>
+          <Mic size={26} />
+          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 17 }}>Mluvit</div>
           <div className="mute">konverzace s lektorem</div>
         </button>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+      <div className="panel" style={{ marginTop: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <span className="mute">Opakování za týden</span>
         <span className="pill" style={{ background: C.amberSoft, color: C.amber }}>{streak} {streak === 1 ? "den" : streak < 5 ? "dny" : "dní"} v řadě</span>
       </div>
@@ -200,9 +220,10 @@ function Today({ data, go, name }) {
       <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
         {days.map((x) => <div key={x.d} className="mute" style={{ flex: 1, textAlign: "center", fontSize: 10 }}>{x.lbl}</div>)}
       </div>
+      </div>
       {data.words.length === 0 && (
-        <div className="panel" style={{ marginTop: 20 }}>
-          <div style={{ fontWeight: 500 }}>Začni první lekcí</div>
+        <div className="panel" style={{ marginTop: 12, background: C.amberSoft, borderColor: "#F5D77A" }}>
+          <div style={{ fontWeight: 800 }}>Začni první lekcí</div>
           <div className="soft" style={{ marginTop: 4 }}>Vyfoť pracovní list nebo stránku z učebnice. Slovíčka a gramatiku z ní vytěžím a připravím k opakování.</div>
         </div>
       )}
@@ -222,7 +243,7 @@ function Lessons({ data, go, open }) {
           const ws = data.words.filter((w) => w.lessonId === l.id);
           const k = ws.filter(isKnown).length;
           return (
-            <button key={l.id} className="tile" style={{ marginBottom: 10 }} onClick={() => open(l.id)}>
+            <button key={l.id} className="tile" style={{ marginBottom: 10, borderLeft: `6px solid ${["#1CB0F6","#58CC02","#FF9600","#CE82FF","#FF4B4B","#FFC800"][LEVELS.indexOf(l.level) < 0 ? 1 : LEVELS.indexOf(l.level)]}` }} onClick={() => open(l.id)}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: 500 }}>{l.title}</span>
                 <span className="mute">{new Date(l.created).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })}</span>
@@ -297,12 +318,20 @@ function AddLesson({ data, setData, back, openLesson }) {
         <button className="sec" style={mode === "text" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("text")}><ClipboardPaste size={16} /> Text</button>
       </div>
       {mode === "photo" ? (
-        <label className="tile" style={{ display: "block", textAlign: "center", padding: 28, borderStyle: "dashed", cursor: "pointer" }}>
-          <input type="file" accept="image/*,application/pdf" capture="environment" onChange={onFile} style={{ display: "none" }} disabled={busy} />
-          {preview ? <img src={preview} alt="" style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 10 }} /> : <Camera size={28} color={C.sea} />}
-          <div style={{ fontWeight: 500, marginTop: 10 }}>{busy ? "Čtu materiál…" : "Vyfotit nebo vybrat soubor"}</div>
-          <div className="mute">pracovní list, stránka z učebnice, tabule</div>
-        </label>
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <label className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C", textAlign: "center", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+              <input type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: "none" }} disabled={busy} />
+              <Camera size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>Vyfotit</div><div className="mute">fotoaparátem</div>
+            </label>
+            <label className="tileC" style={{ background: "linear-gradient(160deg,#CE82FF,#9B4DE0)", boxShadow: "0 5px 0 #7A35B8", textAlign: "center", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+              <input type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: "none" }} disabled={busy} />
+              <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>Galerie / soubor</div><div className="mute">fotka nebo PDF</div>
+            </label>
+          </div>
+          {preview && <div className="panel" style={{ marginTop: 12, textAlign: "center" }}><img src={preview} alt="" style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 10 }} /></div>}
+          {busy && <div className="panel" style={{ marginTop: 12, fontWeight: 800, color: C.grnDark }}>Čtu materiál…</div>}
+        </div>
       ) : (
         <div>
           <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="Vlož slovíčka, poznámky nebo text z lekce" />
@@ -584,13 +613,13 @@ function Stats({ data }) {
   return (
     <div className="scr">
       <h1 className="h1">Statistiky</h1>
-      <div className="panel">
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute">Odhadovaná úroveň</span>{ws.length >= 8 && <span style={{ fontSize: 12, color: C.sea }}>{level} → {next}</span>}</div>
-        {ws.length < 8 ? <div className="soft" style={{ marginTop: 4 }}>Skupina A2.2. Přidej lekce a zopakuj slovíčka, pak úroveň zpřesním.</div> : (
+      <div className="panel" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", color: "#fff", border: "none", boxShadow: "0 5px 0 #0C5E9C" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute" style={{ color: "rgba(255,255,255,.8)" }}>Odhadovaná úroveň</span>{ws.length >= 8 && <span style={{ fontSize: 12, color: "#fff", fontWeight: 800 }}>{level} → {next}</span>}</div>
+        {ws.length < 8 ? <div className="soft" style={{ marginTop: 4, color: "rgba(255,255,255,.9)" }}>Skupina A2.2. Přidej lekce a zopakuj slovíčka, pak úroveň zpřesním.</div> : (
           <div style={{ fontSize: 26, fontWeight: 600, marginTop: 2 }}>{level}<span className="soft" style={{ fontWeight: 400, fontSize: 14 }}> · {strong ? "silné" : "rozpracované"}</span></div>
         )}
-        <div style={{ display: "flex", gap: 3, marginTop: 10 }}>{LEVELS.map((lv, i) => <div key={lv} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= LEVELS.indexOf(level) && ws.length >= 8 ? C.grn : C.line }} />)}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{LEVELS.map((lv) => <span key={lv} className="mute" style={{ fontSize: 10 }}>{lv}</span>)}</div>
+        <div style={{ display: "flex", gap: 3, marginTop: 10 }}>{LEVELS.map((lv, i) => <div key={lv} style={{ flex: 1, height: 8, borderRadius: 4, background: i <= LEVELS.indexOf(level) && ws.length >= 8 ? "#fff" : "rgba(255,255,255,.3)" }} />)}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{LEVELS.map((lv) => <span key={lv} style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.85)" }}>{lv}</span>)}</div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", marginTop: 14 }}>
         <div><div style={{ fontSize: 24, fontWeight: 600 }}>{ws.length}</div><div className="mute">celkem</div></div>
