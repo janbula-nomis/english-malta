@@ -2,8 +2,8 @@
 const SHEETS_URL = import.meta.env.VITE_SHEETS_URL;
 const CACHE = "english:cache";
 const PIN_KEY = "english:pin";
-const EMPTY = { lessons: [], words: [], log: [], sessions: [], sentences: [], tests: [], drill: [], course: [] };
-const SHEET_NAMES = ["lessons", "words", "log", "sessions", "sentences", "tests", "drill", "course"];
+const EMPTY = { lessons: [], words: [], log: [], sessions: [], sentences: [], tests: [], drill: [], course: [], i18n: [] };
+const SHEET_NAMES = ["lessons", "words", "log", "sessions", "sentences", "tests", "drill", "course", "i18n"];
 
 export const getPin = () => localStorage.getItem(PIN_KEY) || "";
 export const setPin = (p) => localStorage.setItem(PIN_KEY, p);
@@ -18,12 +18,14 @@ export const setErrorHandler = (f) => (onError = f);
 const num = (v) => (v === null || v === undefined || v === "" ? 0 : Number(v));
 function normalize(d) {
   return {
-    lessons: (d.lessons || []).map((l) => ({ ...l, id: String(l.id), created: num(l.created), grammar: Array.isArray(l.grammar) ? l.grammar : [], unitLesson: l.unitLesson ? String(l.unitLesson) : null })),
+    lessons: (d.lessons || []).map((l) => ({ ...l, id: String(l.id), created: num(l.created), grammar: Array.isArray(l.grammar) ? l.grammar : [], unitLesson: l.unitLesson ? String(l.unitLesson) : null, kind: l.kind || null })),
     words: (d.words || []).map((w) => ({ ...w, id: String(w.id), lessonId: String(w.lessonId), ease: num(w.ease) || 2.5, interval: num(w.interval), reps: num(w.reps), lapses: num(w.lapses), due: num(w.due), seen: num(w.seen), last: num(w.last) })),
     log: (d.log || []).map((l) => ({ ...l, id: String(l.id), g: num(l.g) })),
     sessions: (d.sessions || []).map((s) => ({ ...s, id: String(s.id), turns: num(s.turns), ok: num(s.ok), errs: Array.isArray(s.errs) ? s.errs : [] })),
     sentences: (d.sentences || []).map((x) => ({ ...x, id: String(x.id), ease: num(x.ease) || 2.5, interval: num(x.interval), reps: num(x.reps), lapses: num(x.lapses), due: num(x.due), seen: num(x.seen), last: num(x.last) })),
     drill: (d.drill || []).map((x) => ({ ...x, id: String(x.id), ease: num(x.ease) || 2.5, interval: num(x.interval), reps: num(x.reps), lapses: num(x.lapses), due: num(x.due), seen: num(x.seen), last: num(x.last), right: num(x.right), wrong: num(x.wrong) })),
+    i18n: (d.i18n || []).map((x) => ({ ...x, id: String(x.id) })),
+    i18n: (d.i18n || []).map((x) => ({ ...x, id: String(x.id) })),
     course: (d.course || []).map((c) => ({ ...c, id: String(c.id), status: c.status || "todo", preparedLessonId: c.preparedLessonId ? String(c.preparedLessonId) : null })),
     tests: (d.tests || []).map((t) => ({ ...t, id: String(t.id), total: num(t.total), correct: num(t.correct), items: Array.isArray(t.items) ? t.items : [], lessonId: t.lessonId ? String(t.lessonId) : null, retakeOf: t.retakeOf ? String(t.retakeOf) : null })),
   };

@@ -65,3 +65,8 @@ public/manifest.webmanifest, public/sw.js, public/icons   PWA
 ```
 
 Data se při každé změně zapisují do tabulky (jen rozdíly). Když je zařízení offline, změny zůstanou v paměti prohlížeče a zapíší se při další změně online. Změna úrovně skupiny: konstanta `MY_LEVEL` v `src/App.jsx`.
+
+## Jazyk rozhraní a odborná témata (v1.6)
+
+- Vlaječky vpravo nahoře přepínají jazyk rozhraní (čeština, angličtina, španělština). Hlavní prvky jsou přeložené napevno, ostatní texty a vestavěná data (významy sloves, frází, gramatika) se při prvním zobrazení přeloží AI a uloží do listu `i18n`, takže se platí jen jednou. Překlady slovíček a vysvětlení lektora se generují v jazyce, který je právě zvolený.
+- Lekce → Odborná témata: napiš obor (jachting, kardiologie…) a vznikne balíček 25 slovíček jako samostatná lekce; smazat jde v detailu lekce tlačítkem Smazat.

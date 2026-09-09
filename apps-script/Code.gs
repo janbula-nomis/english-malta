@@ -3,7 +3,7 @@
 const TOKEN = "736251";
 
 const SHEETS = {
-  lessons:  ["id", "title", "level", "grammar", "created", "unitLesson"],
+  lessons:  ["id", "title", "level", "grammar", "created", "unitLesson", "kind"],
   words:    ["id", "lessonId", "en", "ipa", "cz", "ex", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last"],
   log:      ["id", "d", "wordId", "g"],
   sessions: ["id", "d", "topic", "turns", "ok", "errs"],
@@ -11,6 +11,7 @@ const SHEETS = {
   tests: ["id", "d", "scope", "lessonId", "total", "correct", "items", "retakeOf"],
   drill: ["id", "kind", "key", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last", "right", "wrong"],
   course: ["id", "status", "preparedLessonId"],
+  i18n: ["id", "lang", "src", "txt"],
 };
 const JSON_COLS = ["grammar", "errs", "items"];
 

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell, Repeat, Puzzle, Map, MessagesSquare } from "lucide-react";
 
-const VERSION = "1.5.1";
+const VERSION = "1.6.0";
 
 import { IRREGULAR, PHRASAL, PARTICLES } from "./drillData.js";
 import { PHRASES } from "./phrasesData.js";
+import { LANGS, L, useI18n, getLang, langName, configureI18n, setLang as setLangGlobal } from "./i18n.js";
 import { COURSE, GRAMMAR, ALL_LESSONS, findCourseLesson } from "./courseData.js";
 import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
@@ -58,7 +59,7 @@ const isDue = (w) => !w.due || w.due <= Date.now();
 const nextLabel = (w, g) => {
   if (g === 0) return "za 1 min";
   const p = grade(w, g);
-  return p.interval === 1 ? "zítra" : `za ${p.interval} dní`;
+  return p.interval === 1 ? L("zítra") : `za ${p.interval} ${L("dní")}`;
 };
 
 function parseJSON(t) {
@@ -110,7 +111,7 @@ const css = `
 .ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:3px solid ${C.blu};outline-offset:2px}
 .scr{flex:1;padding:36px 20px 96px;overflow-y:auto}
 .nav{position:sticky;bottom:0;background:#fff;border-top:2px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
-.ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:${C.mute};width:74px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
+.ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:${C.mute};width:74px;overflow:hidden;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
 .nav button.on{color:${C.blu};background:${C.seaSoft};border:2px solid #84D8FF}
 .h1{font-size:30px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px;color:#1179C7}
 .mute{color:${C.mute};font-size:13px;font-weight:700}
@@ -175,7 +176,7 @@ function Today({ data, go, name }) {
   const known = data.words.filter(isKnown).length;
   const days = [...Array(7)].map((_, i) => {
     const d = new Date(Date.now() - (6 - i) * DAY).toISOString().slice(0, 10);
-    return { d, n: data.log.filter((l) => l.d === d).length, lbl: ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"][new Date(d).getDay()] };
+    return { d, n: data.log.filter((l) => l.d === d).length, lbl: new Date(d).toLocaleDateString(getLang() === "cs" ? "cs-CZ" : getLang() === "es" ? "es-ES" : "en-GB", { weekday: "short" }).replace(".", "") };
   });
   const mx = Math.max(1, ...days.map((x) => x.n));
   const streak = (() => {
@@ -184,56 +185,56 @@ function Today({ data, go, name }) {
     for (let i = has(0) ? 0 : 1; i < 365 && has(i); i++) s++;
     return s;
   })();
-  const date = new Date().toLocaleDateString("cs-CZ", { weekday: "long", day: "numeric", month: "long" });
+  const date = new Date().toLocaleDateString(getLang() === "cs" ? "cs-CZ" : getLang() === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "long" });
   return (
     <div className="scr">
       <div className="hero">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div className="mute" style={{ textTransform: "capitalize" }}>{date}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.2 }}>{new Date().getHours() < 11 ? "Dobré ráno" : new Date().getHours() < 18 ? "Dobrý den" : "Dobrý večer"}{name ? `, ${name}` : ""}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.2 }}>{new Date().getHours() < 11 ? L("Dobré ráno") : new Date().getHours() < 18 ? L("Dobrý den") : L("Dobrý večer")}{name ? `, ${name}` : ""}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={() => go("account")} aria-label="Účet" style={{ color: "#fff" }}><UserCircle size={30} /></button>
+            <button onClick={() => go("account")} aria-label={L("Účet")} style={{ color: "#fff" }}><UserCircle size={30} /></button>
             <img src="/icons/icon-192.png" alt="" width="44" height="44" style={{ borderRadius: 12, border: "2px solid rgba(255,255,255,.6)" }} />
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 16 }}>
-          <svg width="84" height="84" viewBox="0 0 84 84" aria-label="K opakování">
+          <svg width="84" height="84" viewBox="0 0 84 84" aria-label={L("K opakování")}>
             <circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="10" />
             <circle cx="42" cy="42" r="36" fill="none" stroke="#fff" strokeWidth="10" strokeDasharray={2 * Math.PI * 36} strokeDashoffset={2 * Math.PI * 36 * (1 - Math.min(1, due / Math.max(due, 20)))} strokeLinecap="round" transform="rotate(-90 42 42)" />
             <text x="42" y="49" textAnchor="middle" fontSize="24" fontWeight="800" fill="#fff">{due}</text>
           </svg>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 20 }}>Dnešní opakování</div>
-            <div className="soft">{due === 0 ? "Nic nečeká, vše zopakováno." : `${due} slovíček, asi ${Math.max(1, Math.round(due / 5))} min`}{data.sentences.filter(isDue).length > 0 && <> · {data.sentences.filter(isDue).length} vět</>}</div>
-            <button className="pri" style={{ marginTop: 10, padding: "9px 18px", fontSize: 14, background: "#fff", color: C.grnDark, boxShadow: "0 4px 0 #CFE5BF" }} onClick={() => go("review")} disabled={due === 0}>Začít</button>
+            <div style={{ fontWeight: 800, fontSize: 20 }}>{L("Dnešní opakování")}</div>
+            <div className="soft">{due === 0 ? L("Nic nečeká, vše zopakováno.") : `${due} ${L("slovíček, asi")} ${Math.max(1, Math.round(due / 5))} min`}{data.sentences.filter(isDue).length > 0 && <> · {data.sentences.filter(isDue).length} vět</>}</div>
+            <button className="pri" style={{ marginTop: 10, padding: "9px 18px", fontSize: 14, background: "#fff", color: C.grnDark, boxShadow: "0 4px 0 #CFE5BF" }} onClick={() => go("review")} disabled={due === 0}>{L("Začít")}</button>
           </div>
         </div>
       </div>
       {(() => { const cur = data.course.find((c) => c.status === "now"); const cl = cur && findCourseLesson(cur.id); return cl ? (
         <button className="tile" style={{ marginTop: 12, borderLeft: `6px solid ${C.yel}` }} onClick={() => go("course:" + cl.id)}>
-          <div className="mute">Právě v kurzu · Unit {cl.unit.n} · Lesson {cl.n}</div>
+          <div className="mute">{L("Právě v kurzu · Unit")} {cl.unit.n} · Lesson {cl.n}</div>
           <div style={{ fontWeight: 800, fontSize: 20 }}>{cl.title}</div>
-          <div className="soft">{cl.grammar.map((g) => GRAMMAR[g].name).join(", ") || cl.cz}</div>
+          <div className="soft">{cl.grammar.map((g) => GRAMMAR[g].name).join(", ") || L(cl.cz)}</div>
         </button>
       ) : null; })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
         <button className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C" }} onClick={() => go("add")}>
           <Camera size={26} />
-          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 20 }}>Nová lekce</div>
-          <div className="mute">vyfotit materiál</div>
+          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 20 }}>{L("Nová lekce")}</div>
+          <div className="mute">{L("vyfotit materiál")}</div>
         </button>
         <button className="tileC" style={{ background: "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: "0 5px 0 #B85600" }} onClick={() => go("talk")}>
           <Mic size={26} />
-          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 20 }}>Mluvit</div>
-          <div className="mute">konverzace s lektorem</div>
+          <div style={{ fontWeight: 800, marginTop: 8, fontSize: 20 }}>{L("Mluvit")}</div>
+          <div className="mute">{L("konverzace s lektorem")}</div>
         </button>
       </div>
       <div className="panel" style={{ marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span className="mute">Opakování za týden</span>
-        <span className="pill" style={{ background: C.amberSoft, color: C.amber }}>{streak} {streak === 1 ? "den" : streak >= 2 && streak < 5 ? "dny" : "dní"} v řadě</span>
+        <span className="mute">{L("Opakování za týden")}</span>
+        <span className="pill" style={{ background: C.amberSoft, color: C.amber }}>{streak} {L(streak === 1 ? "den v řadě" : streak >= 2 && streak < 5 ? "dny v řadě" : "dní v řadě")}</span>
       </div>
       <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 48, marginTop: 8 }}>
         {days.map((x) => (
@@ -246,23 +247,53 @@ function Today({ data, go, name }) {
       </div>
       {data.words.length === 0 && (
         <div className="panel" style={{ marginTop: 12, background: C.amberSoft, borderColor: "#F5D77A" }}>
-          <div style={{ fontWeight: 800 }}>Začni první lekcí</div>
-          <div className="soft" style={{ marginTop: 4 }}>Vyfoť pracovní list nebo stránku z učebnice. Slovíčka a gramatiku z ní vytěžím a připravím k opakování.</div>
+          <div style={{ fontWeight: 800 }}>{L("Začni první lekcí")}</div>
+          <div className="soft" style={{ marginTop: 4 }}>{L("Vyfoť pracovní list nebo stránku z učebnice. Slovíčka a gramatiku z ní vytěžím a připravím k opakování.")}</div>
         </div>
       )}
     </div>
   );
 }
 
-function Lessons({ data, go, open }) {
+const TOPIC_SYS = () => `You build a specialised English vocabulary pack for an adult learner (native language: ${langName()}, level A2-B1). Return ONLY compact JSON: {"title":"short English title","words":[{"en":"","ipa":"","cz":"translation into ${langName()}","ex":"short example","lv":"A1-C2"}]} with the 25 most useful terms and phrases for the topic. Include specialised vocabulary a professional or enthusiast in that field really uses, not only basic words. Keep examples under 9 words.`;
+function Topics({ data, setData, open }) {
+  const [topic, setTopic] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const packs = data.lessons.filter((l) => l.kind === "topic").slice().reverse();
+  async function make() {
+    setBusy(true); setErr("");
+    try {
+      const j = parseJSON(await askClaude([{ role: "user", content: "Topic: " + topic.trim() }], TOPIC_SYS()));
+      const id = uid();
+      const lesson = { id, title: `${L("Téma")}: ${j.title || topic.trim()}`, level: "B1", grammar: [], created: Date.now(), unitLesson: null, kind: "topic" };
+      const words = (j.words || []).filter((w) => w.en && w.cz).map((w) => ({ id: uid(), lessonId: id, en: w.en, ipa: w.ipa || "", cz: w.cz, ex: w.ex || "", lv: LEVELS.includes(w.lv) ? w.lv : "B1", ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: 0 }));
+      const nd = { ...data, lessons: [...data.lessons, lesson], words: [...data.words, ...words] }; setData(nd); await saveData(nd); setTopic(""); open(id);
+    } catch (e) { setErr(L("Balíček se nepodařilo připravit") + ": " + e.message); }
+    setBusy(false);
+  }
+  return (
+    <div className="panel" style={{ marginBottom: 14 }}>
+      <div style={{ fontWeight: 800, fontSize: 20 }}>{L("Odborná témata")}</div>
+      <div className="soft" style={{ marginTop: 2 }}>{L("Napiš obor a připravím 25 odborných slovíček (psychologie, nemoci, jachting, reality, účetnictví…). Balíček jde kdykoli smazat.")}</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={L("např. jachting, kardiologie, právo")} onKeyDown={(e) => e.key === "Enter" && topic.trim() && !busy && make()} />
+        <button className="pri" style={{ padding: "10px 16px", background: C.blu, boxShadow: `0 4px 0 ${C.bluDark}` }} disabled={busy || !topic.trim()} onClick={make}>{busy ? "…" : L("Připravit")}</button>
+      </div>
+      <Err msg={err} />
+      {packs.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>{packs.map((p) => <button key={p.id} className="pill" style={{ background: C.seaSoft, color: C.blu, fontSize: 14, textTransform: "none", letterSpacing: 0 }} onClick={() => open(p.id)}>{p.title.replace(/^[^:]+: /, "")} · {data.words.filter((w) => w.lessonId === p.id).length}</button>)}</div>}
+    </div>
+  );
+}
+
+function Lessons({ data, setData, go, open }) {
   return (
     <div className="scr">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 className="h1" style={{ margin: 0 }}>Lekce</h1>
-        <button className="sec" onClick={() => go("add")}><Camera size={16} /> Přidat</button>
+        <h1 className="h1" style={{ margin: 0 }}>{L("Lekce")}</h1>
+        <button className="sec" onClick={() => go("add")}><Camera size={16} /> {L("Přidat")}</button>
       </div>
       <div style={{ marginTop: 14 }}>
-        {data.lessons.slice().reverse().map((l) => {
+        <Topics data={data} setData={setData} open={open} />
+        {data.lessons.filter((l) => l.kind !== "topic").slice().reverse().map((l) => {
           const ws = data.words.filter((w) => w.lessonId === l.id);
           const k = ws.filter(isKnown).length;
           return (
@@ -271,23 +302,23 @@ function Lessons({ data, go, open }) {
                 <span style={{ fontWeight: 500 }}>{l.title}</span>
                 <span className="mute">{new Date(l.created).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric" })}</span>
               </div>
-              <div className="soft" style={{ marginTop: 2 }}>{ws.length} slovíček{l.grammar?.length ? ` · ${l.grammar.map((g) => g.name).join(", ")}` : ""}</div>
+              <div className="soft" style={{ marginTop: 2 }}>{ws.length} {L("slovíček")}{l.grammar?.length ? ` · ${l.grammar.map((g) => g.name).join(", ")}` : ""}</div>
               <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
                 {l.level && <Pill>{l.level}</Pill>}
-                <Pill tone="green">{k} umím</Pill>
-                {ws.length - k > 0 && <Pill tone="amber">{ws.length - k} učím se</Pill>}
+                <Pill tone="green">{k} {L("umím")}</Pill>
+                {ws.length - k > 0 && <Pill tone="amber">{ws.length - k} {L("učím se")}</Pill>}
               </div>
             </button>
           );
         })}
-        {data.lessons.length === 0 && <div className="soft">Zatím žádná lekce. Přidej první fotku materiálu ze školy.</div>}
+        {data.lessons.length === 0 && <div className="soft">{L("Zatím žádná lekce. Přidej první fotku materiálu ze školy.")}</div>}
       </div>
     </div>
   );
 }
 
-const EXTRACT_SYS = `You extract English learning material for a Czech adult student attending an English language school. The student is in an A2.2 (pre-intermediate) class, so include also simpler items he may not know yet. Given a photo/PDF/text of a worksheet, textbook page or notes, return ONLY compact JSON, no prose, no markdown:
-{"title":"short English topic title","level":"CEFR of the material A1-C2","words":[{"en":"word or phrase","ipa":"IPA","cz":"Czech translation","ex":"short example sentence","lv":"CEFR A1-C2"}],"grammar":[{"name":"short name","cz":"1-2 sentence explanation in Czech","ex":"example sentence"}]}
+const EXTRACT_SYS = () => `You extract English learning material for an adult student attending an English language school (native language: ${langName()}). The student is in an A2.2 (pre-intermediate) class, so include also simpler items he may not know yet. Given a photo/PDF/text of a worksheet, textbook page or notes, return ONLY compact JSON, no prose, no markdown:
+{"title":"short English topic title","level":"CEFR of the material A1-C2","words":[{"en":"word or phrase","ipa":"IPA","cz":"translation into ${langName()}","ex":"short example sentence","lv":"CEFR A1-C2"}],"grammar":[{"name":"short name","cz":"1-2 sentence explanation in ${langName()}","ex":"example sentence"}]}
 Rules: include every vocabulary item worth learning (max 25, pick the most useful if more). Keep examples under 10 words. Grammar max 3 items, empty array if none. Keep JSON compact.
 Also add "unitLesson": the id of the course lesson this material most likely belongs to, chosen from this syllabus (EF General English A2.2), or null if unclear:
 ` + ALL_LESSONS.map((l) => `${l.id}: Unit ${l.unit.n} ${l.unit.title} / Lesson ${l.n} ${l.title} – ${l.grammar.map((g) => GRAMMAR[g].name).join(", ")}${l.vocab ? "; vocab: " + l.vocab : ""}`).join("\n");
@@ -302,7 +333,7 @@ function AddLesson({ data, setData, back, openLesson }) {
   async function run(content) {
     setBusy(true); setErr("");
     try {
-      const out = await askClaude([{ role: "user", content }], EXTRACT_SYS);
+      const out = await askClaude([{ role: "user", content }], EXTRACT_SYS());
       const j = parseJSON(out);
       const id = uid();
       const lesson = { id, title: j.title || "Lekce", level: j.level || "", grammar: j.grammar || [], created: Date.now(), unitLesson: findCourseLesson(j.unitLesson) ? j.unitLesson : null };
@@ -311,7 +342,7 @@ function AddLesson({ data, setData, back, openLesson }) {
       setData(nd); await saveData(nd);
       openLesson(id);
     } catch (e) {
-      setErr("Vytěžení se nepovedlo: " + e.message + ". Zkus ostřejší fotku nebo vlož text.");
+      setErr(L("Vytěžení se nepovedlo: ") + e.message + L(". Zkus ostřejší fotku nebo vlož text."));
     }
     setBusy(false);
   }
@@ -336,35 +367,35 @@ function AddLesson({ data, setData, back, openLesson }) {
   }
   return (
     <div className="scr">
-      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Zpět</button>
-      <h1 className="h1" style={{ marginTop: 10 }}>Nová lekce</h1>
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
+      <h1 className="h1" style={{ marginTop: 10 }}>{L("Nová lekce")}</h1>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button className="sec" style={mode === "photo" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("photo")}><Camera size={16} /> Fotka / PDF</button>
-        <button className="sec" style={mode === "text" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("text")}><ClipboardPaste size={16} /> Text</button>
+        <button className="sec" style={mode === "photo" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("photo")}><Camera size={16} /> {L("Fotka / PDF")}</button>
+        <button className="sec" style={mode === "text" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("text")}><ClipboardPaste size={16} /> {L("Text")}</button>
       </div>
       {mode === "photo" ? (
         <div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <label className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C", textAlign: "center", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
               <input type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: "none" }} disabled={busy} />
-              <Camera size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>Vyfotit</div><div className="mute">fotoaparátem</div>
+              <Camera size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>{L("Vyfotit")}</div><div className="mute">{L("fotoaparátem")}</div>
             </label>
             <label className="tileC" style={{ background: "linear-gradient(160deg,#CE82FF,#9B4DE0)", boxShadow: "0 5px 0 #7A35B8", textAlign: "center", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
               <input type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: "none" }} disabled={busy} />
-              <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>Galerie / soubor</div><div className="mute">fotka nebo PDF</div>
+              <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>{L("Galerie / soubor")}</div><div className="mute">{L("fotka nebo PDF")}</div>
             </label>
           </div>
           {preview && <div className="panel" style={{ marginTop: 12, textAlign: "center" }}><img src={preview} alt="" style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 10 }} /></div>}
-          {busy && <div className="panel" style={{ marginTop: 12, fontWeight: 800, color: C.grnDark }}>Čtu materiál…</div>}
+          {busy && <div className="panel" style={{ marginTop: 12, fontWeight: 800, color: C.grnDark }}>{L("Čtu materiál…")}</div>}
         </div>
       ) : (
         <div>
-          <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="Vlož slovíčka, poznámky nebo text z lekce" />
-          <button className="pri" style={{ marginTop: 10 }} disabled={busy || !text.trim()} onClick={() => run(text)}>{busy ? "Zpracovávám…" : "Vytěžit"}</button>
+          <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder={L("Vlož slovíčka, poznámky nebo text z lekce")} />
+          <button className="pri" style={{ marginTop: 10 }} disabled={busy || !text.trim()} onClick={() => run(text)}>{busy ? L("Zpracovávám…") : L("Vytěžit")}</button>
         </div>
       )}
       <Err msg={err} />
-      {busy && <div className="soft" style={{ marginTop: 12 }}>Hledám slovíčka, překlady, výslovnost a gramatiku. Trvá to asi 15 sekund.</div>}
+      {busy && <div className="soft" style={{ marginTop: 12 }}>{L("Hledám slovíčka, překlady, výslovnost a gramatiku. Trvá to asi 15 sekund.")}</div>}
     </div>
   );
 }
@@ -377,32 +408,32 @@ function LessonDetail({ data, setData, id, back, talk }) {
   if (!l) return null;
   if (ex) return <Exercise lesson={l} words={ws} back={() => setEx(null)} />;
   async function remove() {
-    if (!confirm("Smazat lekci včetně slovíček?")) return;
+    if (!confirm(L("Smazat lekci včetně slovíček?"))) return;
     const nd = { ...data, lessons: data.lessons.filter((x) => x.id !== id), words: data.words.filter((w) => w.lessonId !== id) };
     setData(nd); await saveData(nd); back();
   }
   return (
     <div className="scr">
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Lekce</button>
-        <button className="mute" onClick={remove}>Smazat</button>
+        <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Lekce")}</button>
+        <button className="mute" onClick={remove}>{L("Smazat")}</button>
       </div>
       <h1 className="h1" style={{ marginTop: 10, marginBottom: 6 }}>{l.title}</h1>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {l.level && <Pill>{l.level}</Pill>}
-        <Pill tone="grey">{ws.length} slovíček</Pill>
+        <Pill tone="grey">{ws.length} {L("slovíček")}</Pill>
         {l.grammar.map((g) => <Pill key={g.name} tone="grey">{g.name}</Pill>)}
       </div>
       <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span className="mute">V kurzu:</span>
+        <span className="mute">{L("V kurzu:")}</span>
         <select value={l.unitLesson || ""} onChange={async (e) => { const v = e.target.value || null; const nd = { ...data, lessons: data.lessons.map((x) => (x.id === id ? { ...x, unitLesson: v } : x)) }; setData(nd); saveData(nd); }} style={{ flex: 1, padding: "8px 10px", borderRadius: 12, border: `2px solid ${C.line}`, font: "inherit", fontSize: 16, background: "#fff" }}>
-          <option value="">nezařazeno</option>
+          <option value="">{L("nezařazeno")}</option>
           {ALL_LESSONS.map((cl) => <option key={cl.id} value={cl.id}>U{cl.unit.n} L{cl.n} · {cl.title}</option>)}
         </select>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, marginBottom: 4 }}>
-        <span style={{ fontWeight: 800, fontSize: 20 }}>Slovíčka</span>
-        <span className="mute">{ws.filter(isKnown).length} z {ws.length} umím</span>
+        <span style={{ fontWeight: 800, fontSize: 20 }}>{L("Slovíčka")}</span>
+        <span className="mute">{ws.filter(isKnown).length} z {ws.length} {L("umím")}</span>
       </div>
       {(all ? ws : ws.slice(0, 6)).map((w) => (
         <div key={w.id} className="row" style={{ padding: "7px 0" }}>
@@ -412,10 +443,10 @@ function LessonDetail({ data, setData, id, back, talk }) {
           <span className="soft" style={{ textAlign: "right", display: "flex", gap: 6, alignItems: "center" }}>{w.cz}<span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{w.lv}</span>{isKnown(w) && <Check size={12} color={C.green} />}</span>
         </div>
       ))}
-      {ws.length > 6 && <button className="soft" style={{ color: C.sea, padding: "8px 0" }} onClick={() => setAll(!all)}>{all ? "skrýt" : `zobrazit všech ${ws.length}`}</button>}
+      {ws.length > 6 && <button className="soft" style={{ color: C.sea, padding: "8px 0" }} onClick={() => setAll(!all)}>{all ? L("skrýt") : `${L("zobrazit všech")} ${ws.length}`}</button>}
       {l.grammar.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Gramatika</div>
+          <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>{L("Gramatika")}</div>
           {l.grammar.map((g) => (
             <div key={g.name} className="panel" style={{ marginBottom: 8, padding: "12px 14px" }}>
               <div style={{ fontWeight: 800, fontSize: 19 }}>{g.name}</div>
@@ -425,10 +456,10 @@ function LessonDetail({ data, setData, id, back, talk }) {
           ))}
         </div>
       )}
-      <div style={{ fontWeight: 800, fontSize: 20, margin: "16px 0 6px" }}>Cvičení</div>
+      <div style={{ fontWeight: 800, fontSize: 20, margin: "16px 0 6px" }}>{L("Cvičení")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <button className="tile" style={{ textAlign: "center" }} onClick={() => setEx(true)}><Pencil size={18} /><div style={{ fontSize: 16, marginTop: 4 }}>Doplňovačka</div></button>
-        <button className="tile" style={{ textAlign: "center" }} onClick={() => talk(l)}><Mic size={18} /><div style={{ fontSize: 16, marginTop: 4 }}>Konverzace k lekci</div></button>
+        <button className="tile" style={{ textAlign: "center" }} onClick={() => setEx(true)}><Pencil size={18} /><div style={{ fontSize: 16, marginTop: 4 }}>{L("Doplňovačka")}</div></button>
+        <button className="tile" style={{ textAlign: "center" }} onClick={() => talk(l)}><Mic size={18} /><div style={{ fontSize: 16, marginTop: 4 }}>{L("Konverzace k lekci")}</div></button>
       </div>
     </div>
   );
@@ -441,22 +472,22 @@ function Exercise({ lesson, words, back }) {
   const [score, setScore] = useState(0);
   const [err, setErr] = useState("");
   useEffect(() => {
-    const sys = `Create a fill-in-the-blank exercise for a Czech English learner. Return ONLY JSON: {"items":[{"s":"sentence with ___ for the missing word","a":"correct word exactly as it fits","o":["3 wrong but plausible options"]}]}. 8 items, each using a different word from the list, natural sentences under 14 words.`;
+    const sys = `Create a fill-in-the-blank exercise for an English learner (native language: ${langName()}). Return ONLY JSON: {"items":[{"s":"sentence with ___ for the missing word","a":"correct word exactly as it fits","o":["3 wrong but plausible options"]}]}. 8 items, each using a different word from the list, natural sentences under 14 words.`;
       askClaude([{ role: "user", content: "Words: " + words.slice(0, 20).map((w) => w.en).join(", ") + ". Topic: " + lesson.title }], sys)
       .then((t) => setItems(parseJSON(t).items))
-      .catch((e) => setErr("Nepodařilo se připravit cvičení: " + e.message));
+      .catch((e) => setErr(L("Nepodařilo se připravit cvičení: ") + e.message));
   }, []);
   const opts = useMemo(() => {
     if (!items || !items[i]) return [];
     return [items[i].a, ...items[i].o].sort(() => Math.random() - 0.5);
   }, [items, i]);
-  if (err) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><Err msg={err} /></div>;
-  if (!items) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><div className="soft" style={{ marginTop: 20 }}>Připravuji cvičení…</div></div>;
+  if (err) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><Err msg={err} /></div>;
+  if (!items) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><div className="soft" style={{ marginTop: 20 }}>{L("Připravuji cvičení…")}</div></div>;
   if (i >= items.length) return (
     <div className="scr" style={{ textAlign: "center", paddingTop: 80 }}>
       <div style={{ fontSize: 40, fontWeight: 600 }}>{score} / {items.length}</div>
-      <div className="soft">{score === items.length ? "Bez chyby." : score >= items.length / 2 ? "Dobré, zopakuj si chybějící slovíčka." : "Vrať se ke slovíčkům lekce a zkus to znovu."}</div>
-      <button className="pri" style={{ marginTop: 20 }} onClick={back}>Zpět na lekci</button>
+      <div className="soft">{score === items.length ? "Bez chyby." : score >= items.length / 2 ? L("Dobré, zopakuj si chybějící slovíčka.") : L("Vrať se ke slovíčkům lekce a zkus to znovu.")}</div>
+      <button className="pri" style={{ marginTop: 20 }} onClick={back}>{L("Zpět na lekci")}</button>
     </div>
   );
   const it = items[i];
@@ -469,7 +500,7 @@ function Exercise({ lesson, words, back }) {
         const st = pick ? (o === it.a ? { background: C.greenSoft, borderColor: C.green } : o === pick ? { background: C.redSoft, borderColor: C.red } : {}) : {};
         return <button key={o} className="tile" style={{ marginBottom: 8, ...st }} onClick={() => { if (!pick) { setPick(o); if (o === it.a) setScore(score + 1); } }}>{o}</button>;
       })}
-      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>Další</button>}
+      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>{L("Další")}</button>}
     </div>
   );
 }
@@ -484,9 +515,9 @@ function Review({ data, setData, back }) {
   if (!w) return (
     <div className="scr" style={{ textAlign: "center", paddingTop: 80 }}>
       <Check size={40} color={C.green} />
-      <div style={{ fontSize: 22, fontWeight: 600, marginTop: 10 }}>Hotovo</div>
-      <div className="soft">{done ? `${done} slovíček zopakováno. Další čekají zítra.` : "Nic nečeká na opakování. Přidej lekci nebo se vrať zítra."}</div>
-      <button className="pri" style={{ marginTop: 20 }} onClick={back}>Zpět</button>
+      <div style={{ fontSize: 22, fontWeight: 600, marginTop: 10 }}>{L("Hotovo")}</div>
+      <div className="soft">{done ? `${done} ${L("slovíček zopakováno. Další čekají zítra.")}` : L("Nic nečeká na opakování. Přidej lekci nebo se vrať zítra.")}</div>
+      <button className="pri" style={{ marginTop: 20 }} onClick={back}>{L("Zpět")}</button>
     </div>
   );
   const lesson = data.lessons.find((l) => l.id === w.lessonId);
@@ -513,23 +544,23 @@ function Review({ data, setData, back }) {
           <>
             <div style={{ fontSize: 26 }}>{w.cz}</div>
             {w.ex && <div className="soft" style={{ marginTop: 10, fontStyle: "italic" }}>{w.ex}</div>}
-            <div className="mute" style={{ marginTop: 16 }}>{w.seen ? `Viděno ${w.seen}×` : "Poprvé"}</div>
+            <div className="mute" style={{ marginTop: 16 }}>{w.seen ? `${L("Viděno")} ${w.seen}×` : L("Poprvé")}</div>
           </>
-        ) : <div className="mute">Klepni pro odpověď</div>}
+        ) : <div className="mute">{L("Klepni pro odpověď")}</div>}
       </button>
       {flip ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
-          <button className="g" style={{ background: C.red, color: "#fff", borderColor: "#C41F1F" }} onClick={() => answer(0)}><b>Nevím</b><span>{nextLabel(w, 0)}</span></button>
-          <button className="g" style={{ background: C.yel, color: "#5a4300", borderColor: C.yelDark }} onClick={() => answer(1)}><b>Těžké</b><span>{nextLabel(w, 1)}</span></button>
-          <button className="g" style={{ background: C.grn, color: "#fff", borderColor: C.grnDark }} onClick={() => answer(2)}><b>Umím</b><span>{nextLabel(w, 2)}</span></button>
+          <button className="g" style={{ background: C.red, color: "#fff", borderColor: "#C41F1F" }} onClick={() => answer(0)}><b>{L("Nevím")}</b><span>{nextLabel(w, 0)}</span></button>
+          <button className="g" style={{ background: C.yel, color: "#5a4300", borderColor: C.yelDark }} onClick={() => answer(1)}><b>{L("Těžké")}</b><span>{nextLabel(w, 1)}</span></button>
+          <button className="g" style={{ background: C.grn, color: "#fff", borderColor: C.grnDark }} onClick={() => answer(2)}><b>{L("Umím")}</b><span>{nextLabel(w, 2)}</span></button>
         </div>
-      ) : <button className="pri" style={{ marginTop: 12, alignSelf: "center" }} onClick={() => setFlip(true)}>Ukázat překlad</button>}
+      ) : <button className="pri" style={{ marginTop: 12, alignSelf: "center" }} onClick={() => setFlip(true)}>{L("Ukázat překlad")}</button>}
     </div>
   );
 }
 
-const TALK_SYS = (lesson, words, level) => `You are a friendly English tutor talking with Jan, a Czech adult learner in an A2.2 (pre-intermediate) class; his estimated vocabulary level is ${level}. Use simple, clear English suited to A2: short sentences, common words, present/past simple and basic future, no idioms. Keep replies to 1-2 sentences and always end with one easy question to keep him talking. If he struggles, rephrase more simply. ${lesson ? `Topic of today's lesson: ${lesson.title}.${lesson.focus ? ` GRAMMAR FOCUS: ${lesson.focus}. Steer the conversation so that Jan has to use this grammar (ask questions that require it), model it in your own replies, and correct mistakes in it first.` : ""}${words.length ? ` Try to use and elicit these words: ${words.join(", ")}.` : ""}` : "Pick everyday or work topics."}
-Return ONLY JSON: {"reply":"what you say next","ok":true/false,"correct":"his last sentence rewritten fully correct (null if ok)","wrongPart":"the wrong words (null if ok)","why":"one short explanation in Czech, e.g. 'present perfect = have + 3. tvar: worked'","cz":"Czech translation of the correct sentence","type":"čas|člen|předložka|slovosled|slovíčko|množné číslo|jiné","lv":"CEFR level of the correct sentence A1-C2"}.
+const TALK_SYS = (lesson, words, level) => `You are a friendly English tutor talking with Jan, an adult learner (native language: ${langName()}) in an A2.2 (pre-intermediate) class; his estimated vocabulary level is ${level}. Use simple, clear English suited to A2: short sentences, common words, present/past simple and basic future, no idioms. Keep replies to 1-2 sentences and always end with one easy question to keep him talking. If he struggles, rephrase more simply. ${lesson ? `Topic of today's lesson: ${lesson.title}.${lesson.focus ? ` GRAMMAR FOCUS: ${lesson.focus}. Steer the conversation so that Jan has to use this grammar (ask questions that require it), model it in your own replies, and correct mistakes in it first.` : ""}${words.length ? ` Try to use and elicit these words: ${words.join(", ")}.` : ""}` : "Pick everyday or work topics."}
+Return ONLY JSON: {"reply":"what you say next","ok":true/false,"correct":"his last sentence rewritten fully correct (null if ok)","wrongPart":"the wrong words (null if ok)","why":"one short explanation in ${langName()}, e.g. 'present perfect = have + 3. tvar: worked'","cz":"translation of the correct sentence into ${langName()}","type":"${L("čas|člen|předložka|slovosled|slovíčko|množné číslo|jiné")}","lv":"CEFR level of the correct sentence A1-C2"}.
 Mark ok=false only for real grammar or vocabulary mistakes, not for missing punctuation, capitalisation or speech-recognition slips. Never put the correction into the reply itself.`;
 
 function Talk({ data, setData, back, lesson }) {
@@ -571,7 +602,7 @@ function Talk({ data, setData, back, lesson }) {
         setMsgs([...next, { role: "assistant", text: j.reply }]);
         speak(j.reply);
       }
-    } catch (e) { setErr("Lektor neodpověděl: " + e.message); }
+    } catch (e) { setErr(L("Lektor neodpověděl: ") + e.message); }
     setBusy(false);
   }
   function startRec() {
@@ -580,7 +611,7 @@ function Talk({ data, setData, back, lesson }) {
     const R = window.SpeechRecognition || window.webkitSpeechRecognition;
     const r = new R(); r.lang = "en-GB"; r.interimResults = false; r.maxAlternatives = 1;
     r.onresult = (e) => { const t = e.results[0][0].transcript; setRec(false); send(t); };
-    r.onerror = (e) => { setRec(false); setErr(e.error === "not-allowed" ? "Mikrofon není povolen. Napiš odpověď textem." : "Nerozuměl jsem, zkus to znovu."); };
+    r.onerror = (e) => { setRec(false); setErr(e.error === "not-allowed" ? L("Mikrofon není povolen. Napiš odpověď textem.") : L("Nerozuměl jsem, zkus to znovu.")); };
     r.onend = () => setRec(false);
     recRef.current = r; setRec(true); r.start();
   }
@@ -588,29 +619,29 @@ function Talk({ data, setData, back, lesson }) {
   async function finish() {
     const mine = msgs.filter((m) => m.role === "user");
     const errs = mine.filter((m) => m.fix).map((m) => m.fix);
-    const s = { id: uid(), d: today(), turns: mine.length, ok: mine.filter((m) => m.ok !== false).length, errs, topic: lesson?.title || "volné téma" };
+    const s = { id: uid(), d: today(), turns: mine.length, ok: mine.filter((m) => m.ok !== false).length, errs, topic: lesson?.title || L("volné téma") };
     const nd = { ...data, sessions: [...data.sessions, s] };
     setData(nd); await saveData(nd);
     setSummary(s);
   }
   if (summary) return (
     <div className="scr">
-      <h1 className="h1">Shrnutí</h1>
+      <h1 className="h1">{L("Shrnutí")}</h1>
       <div className="panel">
         <div style={{ fontSize: 28, fontWeight: 600 }}>{summary.turns ? Math.round((summary.ok / summary.turns) * 100) : 0} %</div>
-        <div className="soft">vět bez chyby ({summary.ok} z {summary.turns})</div>
+        <div className="soft">{L("vět bez chyby")} ({summary.ok} z {summary.turns})</div>
       </div>
-      <div style={{ fontWeight: 500, margin: "16px 0 6px" }}>Co opravit</div>
-      {summary.errs.length === 0 ? <div className="soft">Žádné chyby k opravě.</div> : summary.errs.map((e, k) => <div key={k} className="row" style={{ fontSize: 14 }}>{e}</div>)}
-      <button className="pri" style={{ marginTop: 20 }} onClick={back}>Zavřít</button>
+      <div style={{ fontWeight: 500, margin: "16px 0 6px" }}>{L("Co opravit")}</div>
+      {summary.errs.length === 0 ? <div className="soft">{L("Žádné chyby k opravě.")}</div> : summary.errs.map((e, k) => <div key={k} className="row" style={{ fontSize: 14 }}>{e}</div>)}
+      <button className="pri" style={{ marginTop: 20 }} onClick={back}>{L("Zavřít")}</button>
     </div>
   );
   return (
     <div className="scr" style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button className="soft" onClick={back}><X size={18} /></button>
-        <span className="mute">{lesson ? lesson.title : "Volná konverzace"}</span>
-        <button className="mute" onClick={finish} disabled={msgs.length < 2}>Ukončit</button>
+        <span className="mute">{lesson ? lesson.title : L("Volná konverzace")}</span>
+        <button className="mute" onClick={finish} disabled={msgs.length < 2}>{L("Ukončit")}</button>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, marginTop: 14, overflowY: "auto" }}>
         {msgs.map((m, k) => (
@@ -621,7 +652,7 @@ function Talk({ data, setData, back, lesson }) {
           </div>
         ))}
         {pending && <CorrectionCard key={pending.correct} pending={pending} hasSR={hasSR} onDone={() => { const r = pending.reply; setPending(null); setMsgs((m) => [...m, { role: "assistant", text: r }]); speak(r); }} />}
-        {busy && <div className="soft" style={{ color: C.blu }}>Lektor přemýšlí…</div>}
+        {busy && <div className="soft" style={{ color: C.blu }}>{L("Lektor přemýšlí…")}</div>}
         <div ref={endRef} />
       </div>
       <Err msg={err} />
@@ -635,14 +666,14 @@ function Talk({ data, setData, back, lesson }) {
               </button>
             </div>
             <div style={{ marginTop: 2, minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-              {rec ? <><span className="bars"><span className="bar" /><span className="bar" /><span className="bar" /><span className="bar" /><span className="bar" /></span><span style={{ color: C.red, fontWeight: 800 }}>Poslouchám… klepni pro odeslání</span></> : <span className="soft">Klepni a mluv</span>}
+              {rec ? <><span className="bars"><span className="bar" /><span className="bar" /><span className="bar" /><span className="bar" /><span className="bar" /></span><span style={{ color: C.red, fontWeight: 800 }}>{L("Poslouchám… klepni pro odeslání")}</span></> : <span className="soft">{L("Klepni a mluv")}</span>}
             </div>
           </>
-        ) : <div className="mute">Rozpoznávání řeči tu není k dispozici, napiš odpověď.</div>}
+        ) : <div className="mute">{L("Rozpoznávání řeči tu není k dispozici, napiš odpověď.")}</div>}
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="nebo napiš anglicky" onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) { send(text.trim()); setText(""); } }} />
-        <button className="sec" disabled={busy || !!pending || !text.trim()} onClick={() => { send(text.trim()); setText(""); }}>Poslat</button>
+        <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={L("nebo napiš anglicky")} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) { send(text.trim()); setText(""); } }} />
+        <button className="sec" disabled={busy || !!pending || !text.trim()} onClick={() => { send(text.trim()); setText(""); }}>{L("Poslat")}</button>
       </div>
     </div>
   );
@@ -680,8 +711,8 @@ function CorrectionCard({ pending, onDone, hasSR }) {
     if (sim >= 0.85) { setMsg("ok"); setTimeout(() => onDone(true), 700); return; }
     const t = tries + 1; setTries(t);
     const miss = missingWords(said, pending.correct);
-    if (t >= 2) { setMsg("Nevadí, jdeme dál. Věta se ti ještě vrátí v opakování."); setTimeout(() => onDone(false), 1500); return; }
-    setMsg(miss.length ? "Ještě jednou. Chybí: " + miss.join(", ") : "Skoro. Zkus to ještě jednou přesně podle vzoru.");
+    if (t >= 2) { setMsg(L("Nevadí, jdeme dál. Věta se ti ještě vrátí v opakování.")); setTimeout(() => onDone(false), 1500); return; }
+    setMsg(miss.length ? L("Ještě jednou. Chybí: ") + miss.join(", ") : L("Skoro. Zkus to ještě jednou přesně podle vzoru."));
   }
   function startRec() {
     if (!hasSR) return;
@@ -689,7 +720,7 @@ function CorrectionCard({ pending, onDone, hasSR }) {
     const R = window.SpeechRecognition || window.webkitSpeechRecognition;
     const r = new R(); r.lang = "en-GB"; r.interimResults = false;
     r.onresult = (e) => { setRec(false); check(e.results[0][0].transcript); };
-    r.onerror = () => { setRec(false); setMsg("Nerozuměl jsem, zkus to znovu nebo napiš."); };
+    r.onerror = () => { setRec(false); setMsg(L("Nerozuměl jsem, zkus to znovu nebo napiš.")); };
     r.onend = () => setRec(false);
     recRef.current = r; setRec(true); r.start();
   }
@@ -699,19 +730,19 @@ function CorrectionCard({ pending, onDone, hasSR }) {
       <div className="mute" style={{ color: C.amber }}>Oprava · {pending.type || "gramatika"}{pending.lv ? ` · ${pending.lv}` : ""}</div>
       <div className="soft" style={{ textDecoration: "line-through", marginTop: 4 }}>{pending.wrong}</div>
       <div style={{ fontSize: 23, fontWeight: 800, color: C.grnDark, marginTop: 4, display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={() => speak(pending.correct)} aria-label="Přehrát"><Volume2 size={18} color={C.blu} /></button>{pending.correct}
+        <button onClick={() => speak(pending.correct)} aria-label={L("Přehrát")}><Volume2 size={18} color={C.blu} /></button>{pending.correct}
       </div>
       {pending.why && <div className="soft" style={{ marginTop: 4 }}>{pending.why}</div>}
-      {ok ? <div style={{ fontWeight: 800, color: C.grnDark, marginTop: 10 }}>Správně.</div> : (
+      {ok ? <div style={{ fontWeight: 800, color: C.grnDark, marginTop: 10 }}>{L("Správně.")}</div> : (
         <>
-          <div style={{ fontWeight: 800, marginTop: 12 }}>Řekni to správně</div>
+          <div style={{ fontWeight: 800, marginTop: 12 }}>{L("Řekni to správně")}</div>
           {msg && <div style={{ color: C.red, marginTop: 4, fontSize: 17 }}>{msg}</div>}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-            {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label="Mluvit" style={{ width: 52, height: 52, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={20} /> : <Mic size={24} />}</button>}
-            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="nebo napiš větu" onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) { check(text); setText(""); } }} />
+            {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label={L("Mluvit")} style={{ width: 52, height: 52, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={20} /> : <Mic size={24} />}</button>}
+            <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={L("nebo napiš větu")} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) { check(text); setText(""); } }} />
             <button className="sec" disabled={!text.trim()} onClick={() => { check(text); setText(""); }}>OK</button>
           </div>
-          <button className="mute" style={{ marginTop: 10 }} onClick={() => onDone(false)}>Přeskočit</button>
+          <button className="mute" style={{ marginTop: 10 }} onClick={() => onDone(false)}>{L("Přeskočit")}</button>
         </>
       )}
     </div>
@@ -732,9 +763,9 @@ function SentenceReview({ data, setData, back }) {
   if (!it) return (
     <div className="scr" style={{ textAlign: "center", paddingTop: 80 }}>
       <Check size={40} color={C.green} />
-      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 10 }}>Hotovo</div>
-      <div className="soft">{done ? `${done} vět zopakováno.` : data.sentences.length ? "Žádná věta dnes nečeká." : "Zatím žádné věty. Vznikají z oprav v konverzaci."}</div>
-      <button className="pri" style={{ marginTop: 20 }} onClick={back}>Zpět</button>
+      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 10 }}>{L("Hotovo")}</div>
+      <div className="soft">{done ? `${done} ${L("vět zopakováno.")}` : data.sentences.length ? L("Žádná věta dnes nečeká.") : L("Zatím žádné věty. Vznikají z oprav v konverzaci.")}</div>
+      <button className="pri" style={{ marginTop: 20 }} onClick={back}>{L("Zpět")}</button>
     </div>
   );
   function check(said) { setResult({ sim: similarity(said, it.en), said }); speak(it.en); }
@@ -758,32 +789,32 @@ function SentenceReview({ data, setData, back }) {
     <div className="scr" style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button className="soft" onClick={back}><X size={18} /></button>
-        <span className="mute">Věty · {done + 1} / {total.current}</span>
+        <span className="mute">{L("Věty")} · {done + 1} / {total.current}</span>
       </div>
       <div style={{ height: 16, background: C.line, borderRadius: 8, margin: "12px 0 20px" }}><div style={{ width: `${Math.max(4, (done / total.current) * 100)}%`, height: 16, background: C.grn, borderRadius: 8 }} /></div>
       <div className="panel" style={{ flex: 1, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", borderBottomWidth: 4 }}>
-        <span className="pill" style={{ background: C.seaSoft, color: C.blu, alignSelf: "center" }}>{it.lv || "A2"} · {it.type || "věta"}</span>
-        <div className="soft" style={{ marginTop: 20 }}>Řekni anglicky</div>
+        <span className="pill" style={{ background: C.seaSoft, color: C.blu, alignSelf: "center" }}>{it.lv || "A2"} · {it.type || L("věta")}</span>
+        <div className="soft" style={{ marginTop: 20 }}>{L("Řekni anglicky")}</div>
         <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6 }}>{it.cz}</div>
         {result && (
           <div style={{ marginTop: 20 }}>
-            <div className="soft">Řekl jsi: {result.said}</div>
+            <div className="soft">{L("Řekl jsi:")} {result.said}</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: good ? C.grnDark : C.red, marginTop: 6 }}>{it.en}</div>
-            {!good && missingWords(result.said, it.en).length > 0 && <div style={{ color: C.red, fontSize: 15, marginTop: 4 }}>Chybí: {missingWords(result.said, it.en).join(", ")}</div>}
+            {!good && missingWords(result.said, it.en).length > 0 && <div style={{ color: C.red, fontSize: 15, marginTop: 4 }}>{L("Chybí:")} {missingWords(result.said, it.en).join(", ")}</div>}
             {it.why && <div className="soft" style={{ marginTop: 6 }}>{it.why}</div>}
           </div>
         )}
       </div>
       {result ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
-          <button className="g" style={{ background: C.red, color: "#fff", borderColor: "#C41F1F" }} onClick={() => answer(0)}><b>Nevím</b><span>{nextLabel(it, 0)}</span></button>
-          <button className="g" style={{ background: C.yel, color: "#5a4300", borderColor: C.yelDark }} onClick={() => answer(1)}><b>Těžké</b><span>{nextLabel(it, 1)}</span></button>
-          <button className="g" style={{ background: C.grn, color: "#fff", borderColor: C.grnDark, outline: good ? "3px solid #2F7A00" : "none" }} onClick={() => answer(2)}><b>Umím</b><span>{nextLabel(it, 2)}</span></button>
+          <button className="g" style={{ background: C.red, color: "#fff", borderColor: "#C41F1F" }} onClick={() => answer(0)}><b>{L("Nevím")}</b><span>{nextLabel(it, 0)}</span></button>
+          <button className="g" style={{ background: C.yel, color: "#5a4300", borderColor: C.yelDark }} onClick={() => answer(1)}><b>{L("Těžké")}</b><span>{nextLabel(it, 1)}</span></button>
+          <button className="g" style={{ background: C.grn, color: "#fff", borderColor: C.grnDark, outline: good ? "3px solid #2F7A00" : "none" }} onClick={() => answer(2)}><b>{L("Umím")}</b><span>{nextLabel(it, 2)}</span></button>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
-          {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label="Mluvit" style={{ width: 56, height: 56, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={22} /> : <Mic size={26} />}</button>}
-          <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="nebo napiš" onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) check(text); }} />
+          {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label={L("Mluvit")} style={{ width: 56, height: 56, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={22} /> : <Mic size={26} />}</button>}
+          <input type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={L("nebo napiš")} onKeyDown={(e) => { if (e.key === "Enter" && text.trim()) check(text); }} />
           <button className="sec" disabled={!text.trim()} onClick={() => check(text)}>OK</button>
         </div>
       )}
@@ -792,7 +823,7 @@ function SentenceReview({ data, setData, back }) {
 }
 
 // ---------- Testy
-const TEST_SYS = `Create an English test for a Czech A2.2 learner. Return ONLY JSON: {"items":[{"q":"question or sentence with ___","a":"correct answer","o":["3 wrong but plausible options"],"lv":"CEFR A1-C2","k":"vocab|grammar"}]}. Mix: about 6 vocabulary items (fill the word into a natural sentence, or Czech→English meaning) and 4 grammar items using the grammar topics given. 10 items, short sentences (max 14 words), each item different.`;
+const TEST_SYS = () => `Create an English test for an A2.2 learner (native language: ${langName()}). Return ONLY JSON: {"items":[{"q":"question or sentence with ___","a":"correct answer","o":["3 wrong but plausible options"],"lv":"CEFR A1-C2","k":"vocab|grammar"}]}. Mix: about 6 vocabulary items (fill the word into a natural sentence, or ${langName()}→English meaning) and 4 grammar items using the grammar topics given. 10 items, short sentences (max 14 words), each item different.`;
 
 function TestRun({ data, setData, back, scope, lessonId, retakeOf, unitId }) {
   const [items, setItems] = useState(null);
@@ -807,9 +838,9 @@ function TestRun({ data, setData, back, scope, lessonId, retakeOf, unitId }) {
     const unitLessonIds = unitId ? data.lessons.filter((l) => l.unitLesson && l.unitLesson.startsWith(unitId)).map((l) => l.id) : null;
     const ws = (unitId ? data.words.filter((w) => unitLessonIds.includes(w.lessonId)) : lessonId ? data.words.filter((w) => w.lessonId === lessonId) : data.words).slice().sort(() => Math.random() - 0.5).slice(0, 25);
     const gs = unitId ? COURSE.find((u) => u.id === unitId).lessons.flatMap((l) => l.grammar).map((g) => GRAMMAR[g].name) : (lessonId ? data.lessons.filter((l) => l.id === lessonId) : data.lessons).flatMap((l) => l.grammar || []).map((g) => g.name).slice(0, 6);
-    if (ws.length < 4) { setErr("Na test je potřeba aspoň 4 slovíčka."); return; }
-    askClaude([{ role: "user", content: "Words (en = cz): " + ws.map((w) => `${w.en} = ${w.cz}`).join("; ") + ". Grammar topics: " + (gs.join(", ") || "present simple, past simple, will") }], TEST_SYS)
-      .then((t) => setItems(parseJSON(t).items)).catch((e) => setErr("Test se nepodařilo připravit: " + e.message));
+    if (ws.length < 4) { setErr(L("Na test je potřeba aspoň 4 slovíčka.")); return; }
+    askClaude([{ role: "user", content: "Words (en = cz): " + ws.map((w) => `${w.en} = ${w.cz}`).join("; ") + ". Grammar topics: " + (gs.join(", ") || "present simple, past simple, will") }], TEST_SYS())
+      .then((t) => setItems(parseJSON(t).items)).catch((e) => setErr(L("Test se nepodařilo připravit: ") + e.message));
   }, []);
   const opts = useMemo(() => (items && items[i] ? [items[i].a, ...items[i].o].sort(() => Math.random() - 0.5) : []), [items, i]);
   useEffect(() => {
@@ -819,25 +850,25 @@ function TestRun({ data, setData, back, scope, lessonId, retakeOf, unitId }) {
       const nd = { ...data, tests: [...data.tests, rec] }; setData(nd); saveData(nd); setSaved(true);
     }
   }, [i, items]);
-  if (err) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><Err msg={err} /></div>;
-  if (!items) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><div className="soft" style={{ marginTop: 20 }}>Připravuji test…</div></div>;
+  if (err) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><Err msg={err} /></div>;
+  if (!items) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><div className="soft" style={{ marginTop: 20 }}>{L("Připravuji test…")}</div></div>;
   if (i >= items.length) {
     const correct = answers.filter((a) => a.ok).length; const pct = Math.round((correct / items.length) * 100);
     return (
       <div className="scr">
         <div className="hero" style={{ textAlign: "center", background: pct >= 70 ? undefined : "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: pct >= 70 ? undefined : "0 6px 0 #B85600" }}>
           <div style={{ fontSize: 48, fontWeight: 800 }}>{pct} %</div>
-          <div>{correct} z {items.length} správně · {unitId ? "Unit " + COURSE.find((u) => u.id === unitId).n : lesson ? lesson.title : "všechny lekce"}</div>
+          <div>{correct} z {items.length} {L("správně")} · {unitId ? "Unit " + COURSE.find((u) => u.id === unitId).n : lesson ? lesson.title : L("všechny lekce")}</div>
         </div>
-        <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>Kde byly chyby</div>
-        {answers.filter((a) => !a.ok).length === 0 ? <div className="soft">Žádné chyby.</div> : answers.filter((a) => !a.ok).map((a, k) => (
+        <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>{L("Kde byly chyby")}</div>
+        {answers.filter((a) => !a.ok).length === 0 ? <div className="soft">{L("Žádné chyby.")}</div> : answers.filter((a) => !a.ok).map((a, k) => (
           <div key={k} className="panel" style={{ marginBottom: 8, padding: "10px 14px" }}>
             <div className="soft">{a.q}</div>
             <div style={{ color: C.red, textDecoration: "line-through" }}>{a.pick}</div>
             <div style={{ color: C.grnDark, fontWeight: 800 }}>{a.a} <span className="pill" style={{ background: C.seaSoft, color: C.blu, marginLeft: 6 }}>{a.lv}</span></div>
           </div>
         ))}
-        <button className="pri" style={{ marginTop: 16 }} onClick={back}>Zavřít</button>
+        <button className="pri" style={{ marginTop: 16 }} onClick={back}>{L("Zavřít")}</button>
       </div>
     );
   }
@@ -849,13 +880,13 @@ function TestRun({ data, setData, back, scope, lessonId, retakeOf, unitId }) {
         <span className="mute">Test · {i + 1} / {items.length}</span>
       </div>
       <div style={{ height: 16, background: C.line, borderRadius: 8, margin: "12px 0 16px" }}><div style={{ width: `${Math.max(4, (i / items.length) * 100)}%`, height: 16, background: C.blu, borderRadius: 8 }} /></div>
-      <div style={{ display: "flex", gap: 6 }}><span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{it.lv}</span><span className="pill" style={{ background: C.bg, color: C.soft }}>{it.k === "grammar" ? "gramatika" : "slovíčko"}</span></div>
+      <div style={{ display: "flex", gap: 6 }}><span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{it.lv}</span><span className="pill" style={{ background: C.bg, color: C.soft }}>{it.k === "grammar" ? "gramatika" : L("slovíčko")}</span></div>
       <div style={{ fontSize: 24, margin: "12px 0 20px", lineHeight: 1.4 }}>{it.q}</div>
       {opts.map((o) => {
         const st = pick ? (o === it.a ? { background: C.greenSoft, borderColor: C.grn } : o === pick ? { background: C.redSoft, borderColor: C.red } : {}) : {};
         return <button key={o} className="tile" style={{ marginBottom: 8, fontSize: 18, ...st }} onClick={() => { if (!pick) { setPick(o); setAnswers([...answers, { q: it.q, a: it.a, pick: o, ok: o === it.a, lv: it.lv }]); } }}>{o}</button>;
       })}
-      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>{i + 1 >= items.length ? "Vyhodnotit" : "Další"}</button>}
+      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>{i + 1 >= items.length ? "Vyhodnotit" : L("Další")}</button>}
     </div>
   );
 }
@@ -863,35 +894,35 @@ function TestRun({ data, setData, back, scope, lessonId, retakeOf, unitId }) {
 function Tests({ data, go, startTest }) {
   const [lessonId, setLessonId] = useState("");
   const tests = data.tests.slice().reverse();
-  const nameOf = (t) => (t.scope === "unit" ? "Unit " + (COURSE.find((u) => u.id === t.lessonId)?.n || "") : t.scope === "lesson" ? data.lessons.find((l) => l.id === t.lessonId)?.title || "lekce" : "všechny lekce");
+  const nameOf = (t) => (t.scope === "unit" ? "Unit " + (COURSE.find((u) => u.id === t.lessonId)?.n || "") : t.scope === "lesson" ? data.lessons.find((l) => l.id === t.lessonId)?.title || "lekce" : L("všechny lekce"));
   const last10 = data.tests.slice(-10);
   return (
     <div className="scr">
-      <h1 className="h1">Testy</h1>
+      <h1 className="h1">{L("Testy")}</h1>
       <div className="panel">
-        <div style={{ fontWeight: 800 }}>Nový test</div>
-        <div className="soft" style={{ marginTop: 2 }}>10 otázek: slovíčka a gramatika, s výběrem odpovědi.</div>
+        <div style={{ fontWeight: 800 }}>{L("Nový test")}</div>
+        <div className="soft" style={{ marginTop: 2 }}>{L("10 otázek: slovíčka a gramatika, s výběrem odpovědi.")}</div>
         <select value={lessonId} onChange={(e) => setLessonId(e.target.value)} style={{ width: "100%", marginTop: 10, padding: "10px 12px", borderRadius: 12, border: `2px solid ${C.line}`, font: "inherit", background: "#fff" }}>
-          <option value="">Ze všech lekcí</option>
+          <option value="">{L("Ze všech lekcí")}</option>
           {data.lessons.slice().reverse().map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
         </select>
-        <button className="pri" style={{ marginTop: 10, background: C.blu, boxShadow: `0 4px 0 ${C.bluDark}` }} disabled={data.words.length < 4} onClick={() => startTest({ lessonId: lessonId || null })}>Spustit test</button>
+        <button className="pri" style={{ marginTop: 10, background: C.blu, boxShadow: `0 4px 0 ${C.bluDark}` }} disabled={data.words.length < 4} onClick={() => startTest({ lessonId: lessonId || null })}>{L("Spustit test")}</button>
       </div>
       {last10.length > 1 && (
         <div className="panel" style={{ marginTop: 12 }}>
-          <div className="mute">Vývoj úspěšnosti</div>
+          <div className="mute">{L("Vývoj úspěšnosti")}</div>
           <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 60, marginTop: 8 }}>
             {last10.map((t) => { const p = t.total ? t.correct / t.total : 0; return <div key={t.id} title={`${Math.round(p * 100)} %`} style={{ flex: 1, height: `${Math.max(6, p * 100)}%`, background: p >= 0.7 ? C.grn : p >= 0.5 ? C.yel : C.red, borderRadius: 6 }} />; })}
           </div>
         </div>
       )}
-      <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>Historie</div>
-      {tests.length === 0 && <div className="soft">Zatím žádný test.</div>}
+      <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>{L("Historie")}</div>
+      {tests.length === 0 && <div className="soft">{L("Zatím žádný test.")}</div>}
       {tests.map((t) => { const p = Math.round((t.correct / t.total) * 100); return (
         <div key={t.id} className="tile" style={{ marginBottom: 8, borderLeft: `6px solid ${p >= 70 ? C.grn : p >= 50 ? C.yel : C.red}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div><div style={{ fontWeight: 800 }}>{p} % <span className="soft" style={{ fontWeight: 500 }}>· {t.correct} z {t.total}</span></div><div className="mute">{new Date(t.d).toLocaleDateString("cs-CZ")} · {nameOf(t)}{t.retakeOf ? " · opakování" : ""}</div></div>
-            <button className="sec" onClick={() => startTest({ lessonId: t.scope === "lesson" ? t.lessonId : null, unitId: t.scope === "unit" ? t.lessonId : null, retakeOf: t.id })}>Znovu</button>
+            <div><div style={{ fontWeight: 800 }}>{p} % <span className="soft" style={{ fontWeight: 500 }}>· {t.correct} z {t.total}</span></div><div className="mute">{new Date(t.d).toLocaleDateString("cs-CZ")} · {nameOf(t)}{t.retakeOf ? L(" · opakování") : ""}</div></div>
+            <button className="sec" onClick={() => startTest({ lessonId: t.scope === "lesson" ? t.lessonId : null, unitId: t.scope === "unit" ? t.lessonId : null, retakeOf: t.id })}>{L("Znovu")}</button>
           </div>
         </div>
       ); })}
@@ -903,27 +934,27 @@ function Practice({ data, go }) {
   const dw = data.words.filter(isDue).length, ds = data.sentences.filter(isDue).length;
   return (
     <div className="scr">
-      <h1 className="h1">Opakovat</h1>
+      <h1 className="h1">{L("Trénink")}</h1>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#58CC02,#3E9E00)", boxShadow: "0 5px 0 #2F7A00", marginBottom: 12 }} onClick={() => go("review")}>
-        <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Slovíčka</div><div className="mute">{dw ? `${dw} čeká na opakování` : "dnes vše hotovo"} · celkem {data.words.length}</div>
+        <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Slovíčka")}</div><div className="mute">{dw ? `${dw} ${L("čeká na opakování")}` : L("dnes vše hotovo")} · celkem {data.words.length}</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: "0 5px 0 #B85600", marginBottom: 12 }} onClick={() => go("sentences")}>
-        <MessageSquareText size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Věty z oprav</div><div className="mute">{ds ? `${ds} čeká na opakování` : data.sentences.length ? "dnes vše hotovo" : "vznikají z oprav v konverzaci"} · celkem {data.sentences.length}</div>
+        <MessageSquareText size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Věty z oprav")}</div><div className="mute">{ds ? `${ds} ${L("čeká na opakování")}` : data.sentences.length ? L("dnes vše hotovo") : L("vznikají z oprav v konverzaci")} · celkem {data.sentences.length}</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#CE82FF,#9B4DE0)", boxShadow: "0 5px 0 #7A35B8", marginBottom: 12 }} onClick={() => go("drill-irr")}>
-        <Repeat size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Nepravidelná slovesa</div><div className="mute">{(() => { const p = drillProgress(data, "irr", IRREGULAR); return `${p.known} z ${p.total} zvládnuto`; })()} · tvary, věty, rychlopalba</div>
+        <Repeat size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Nepravidelná slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "irr", IRREGULAR); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · tvary, věty, rychlopalba</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#2EC4B6,#1B9C90)", boxShadow: "0 5px 0 #13736A", marginBottom: 12 }} onClick={() => go("drill-phr")}>
-        <Puzzle size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Frázová slovesa</div><div className="mute">{(() => { const p = drillProgress(data, "phr", PHRASAL); return `${p.known} z ${p.total} zvládnuto`; })()} · význam, částice, věty</div>
+        <Puzzle size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Frázová slovesa")}</div><div className="mute">{(() => { const p = drillProgress(data, "phr", PHRASAL); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · význam, částice, věty</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#FFC800,#E5A800)", boxShadow: "0 5px 0 #B38200", marginBottom: 12, color: "#3d2e00" }} onClick={() => go("drill-fr")}>
-        <MessagesSquare size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Hovorové fráze</div><div className="mute" style={{ color: "rgba(61,46,0,.75)" }}>{(() => { const p = drillProgress(data, "fr", PHRASES); return `${p.known} z ${p.total} zvládnuto`; })()} · věty a otázky pro každý den</div>
+        <MessagesSquare size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Hovorové fráze")}</div><div className="mute" style={{ color: "rgba(61,46,0,.75)" }}>{(() => { const p = drillProgress(data, "fr", PHRASES); return `${p.known} z ${p.total} ${L("zvládnuto")}`; })()} · věty a otázky pro každý den</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C", marginBottom: 12 }} onClick={() => go("talk")}>
-        <Mic size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Konverzace</div><div className="mute">lektor opravuje a nechá tě větu říct správně</div>
+        <Mic size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Konverzace")}</div><div className="mute">{L("lektor opravuje a nechá tě větu říct správně")}</div>
       </button>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#FF4B4B,#C62828)", boxShadow: "0 5px 0 #8E1C1C" }} onClick={() => go("tests")}>
-        <ClipboardCheck size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>Testy</div><div className="mute">{data.tests.length ? `${data.tests.length} testů · poslední ${Math.round(data.tests.slice(-1)[0].correct / data.tests.slice(-1)[0].total * 100)} %` : "10 otázek, historie, opakování"}</div>
+        <ClipboardCheck size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 18 }}>{L("Testy")}</div><div className="mute">{data.tests.length ? `${data.tests.length} ${L("testů · poslední")} ${Math.round(data.tests.slice(-1)[0].correct / data.tests.slice(-1)[0].total * 100)} %` : L("10 otázek, historie, opakování")}</div>
       </button>
     </div>
   );
@@ -972,41 +1003,41 @@ const TENSES = [
 function makeQuestion(kind, mode, x, all) {
   if (kind === "irr") {
     const f = irrForms(x);
-    if (mode === "forms") return { type: "forms", prompt: f.base, sub: f.cz, answers: [f.past, f.pp], labels: ["past simple", "past participle"], f };
-    if (mode === "rapid") return { type: "rapid", prompt: f.base, sub: f.cz, target: `${f.base} ${f.past} ${f.pp}`, f };
+    if (mode === "forms") return { type: "forms", prompt: f.base, sub: L(f.cz), answers: [f.past, f.pp], labels: ["past simple", "past participle"], f };
+    if (mode === "rapid") return { type: "rapid", prompt: f.base, sub: L(f.cz), target: `${f.base} ${f.past} ${f.pp}`, f };
     const t = TENSES[Math.floor(Math.random() * TENSES.length)];
     const q = t.make(f);
     const wrong = new Set([f.base, f.past, f.pp, f.base + "ed"].filter((w) => w !== q.a));
     while (wrong.size < 3) { const o = all[Math.floor(Math.random() * all.length)]; [o[1], o[2]].forEach((w) => { if (w !== q.a) wrong.add(w); }); }
-    return { type: "choice", prompt: q.s, sub: `${t.label} · (${f.base}) = ${f.cz}`, answer: q.a, options: shuffle([q.a, ...[...wrong].slice(0, 3)]), f };
+    return { type: "choice", prompt: q.s, sub: `${L(t.label)} · (${f.base}) = ${L(f.cz)}`, answer: q.a, options: shuffle([q.a, ...[...wrong].slice(0, 3)]), f };
   }
   if (kind === "fr") {
-    const [en, cz, cat, type, ans] = x;
-    if (mode === "say") return { type: "say", prompt: cz, sub: cat, target: en, x };
-    if (mode === "meaning") { const wrong = pickN(all.filter((p) => p[1] !== cz), 3).map((p) => p[1]); return { type: "choice", prompt: en, sub: "Co to znamená?", answer: cz, options: shuffle([cz, ...wrong]), x }; }
+    const [en, cz0, cat, type, ans] = x; const cz = L(cz0);
+    if (mode === "say") return { type: "say", prompt: cz, sub: L(cat), target: en, x };
+    if (mode === "meaning") { const wrong = pickN(all.filter((p) => p[1] !== cz0), 3).map((p) => L(p[1])); return { type: "choice", prompt: en, sub: L("Co to znamená?"), answer: cz, options: shuffle([cz, ...wrong]), x }; }
     const pool = all.filter((p) => p[4] !== ans && p[2] !== cat);
     const wrong = pickN(pool, 3).map((p) => p[4]);
-    return { type: "choice", prompt: en, sub: "Jak odpovíš? · " + cz, answer: ans, options: shuffle([ans, ...wrong]), x };
+    return { type: "choice", prompt: en, sub: L("Jak odpovíš? · ") + cz, answer: ans, options: shuffle([ans, ...wrong]), x };
   }
-  const [v, part, cz, sent, sep, lv, czs] = x;
+  const [v, part, cz0, sent, sep, lv, czs0] = x; const cz = L(cz0), czs = L(czs0);
   if (mode === "meaning") {
-    const wrong = pickN(all.filter((p) => p[2] !== cz), 3).map((p) => p[2]);
-    return { type: "choice", prompt: `${v} ${part}`, sub: "Co to znamená?", answer: cz, options: shuffle([cz, ...wrong]), x };
+    const wrong = pickN(all.filter((p) => p[2] !== cz0), 3).map((p) => L(p[2]));
+    return { type: "choice", prompt: `${v} ${part}`, sub: L("Co to znamená?"), answer: cz, options: shuffle([cz, ...wrong]), x };
   }
   if (mode === "particle") {
     const wrong = pickN(PARTICLES.filter((p) => p !== part && !part.startsWith(p + " ")), 3);
-    return { type: "choice", prompt: sent, sub: `${cz}${sep ? " · oddělitelné" : ""}`, answer: part, options: shuffle([part, ...wrong]), x };
+    return { type: "choice", prompt: sent, sub: `${cz}${sep ? L(" · oddělitelné") : ""}`, answer: part, options: shuffle([part, ...wrong]), x };
   }
-  return { type: "say", prompt: czs, sub: `použij: ${v} ${part}`, target: sent.replace("___", part), x };
+  return { type: "say", prompt: czs, sub: `${L("použij")}: ${v} ${part}`, target: sent.replace("___", part), x };
 }
 
 function Drill({ data, setData, back, kind }) {
   const list = kind === "irr" ? IRREGULAR : kind === "phr" ? PHRASAL : PHRASES;
   const keyer = keyerFor(kind);
   const modes = kind === "irr"
-    ? [["forms", "Tři tvary", "go → went → gone: napiš oba minulé tvary"], ["sentence", "Ve větě", "doplň správný tvar podle času (minulý, předpřítomný, otázka, zápor)"], ["rapid", "Rychlopalba", "řekni nahlas všechny tři tvary za sebou"]]
-    : kind === "phr" ? [["meaning", "Význam", "vyber správný český význam"], ["particle", "Doplň částici", "up, off, on… ve větě"], ["say", "Řekni větu", "z češtiny do angličtiny s frázovým slovesem"]]
-    : [["say", "Řekni to", "z češtiny do angličtiny – nahlas nebo napiš"], ["meaning", "Rozumím?", "vyber český význam anglické věty"], ["react", "Odpověz", "vyber přirozenou reakci na otázku nebo větu"]];
+    ? [["forms", L("Tři tvary"), L("go → went → gone: napiš oba minulé tvary")], ["sentence", L("Ve větě"), L("doplň správný tvar podle času (minulý, předpřítomný, otázka, zápor)")], ["rapid", "Rychlopalba", L("řekni nahlas všechny tři tvary za sebou")]]
+    : kind === "phr" ? [["meaning", L("Význam"), L("vyber správný český význam")], ["particle", L("Doplň částici"), L("up, off, on… ve větě")], ["say", L("Řekni větu"), L("z češtiny do angličtiny s frázovým slovesem")]]
+    : [["say", L("Řekni to"), L("z češtiny do angličtiny – nahlas nebo napiš")], ["meaning", L("Rozumím?"), L("vyber český význam anglické věty")], ["react", L("Odpověz"), L("vyber přirozenou reakci na otázku nebo větu")]];
   const [mode, setMode] = useState(null);
   const [showList, setShowList] = useState(false);
   const [session, setSession] = useState(null);
@@ -1021,7 +1052,7 @@ function Drill({ data, setData, back, kind }) {
   const recRef = useRef(null);
   const hasSR = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
   const prog = drillProgress(data, kind, list);
-  const title = kind === "irr" ? "Nepravidelná slovesa" : kind === "phr" ? "Frázová slovesa" : "Hovorové fráze";
+  const title = kind === "irr" ? L("Nepravidelná slovesa") : kind === "phr" ? L("Frázová slovesa") : L("Hovorové fráze");
 
   function start(m) {
     const s = pickSession(data, kind, list);
@@ -1064,10 +1095,10 @@ function Drill({ data, setData, back, kind }) {
   // ---- úvod: výběr režimu + přehled
   if (!session) return (
     <div className="scr">
-      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Zpět</button>
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
       <h1 className="h1" style={{ marginTop: 10 }}>{title}</h1>
       <div className="panel" style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute">Zvládnuto</span><span className="mute">{prog.known} z {prog.total} · rozpracováno {prog.started - prog.known}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute">{L("Zvládnuto")}</span><span className="mute">{prog.known} z {prog.total} · {L("rozpracováno")} {prog.started - prog.known}</span></div>
         <div style={{ height: 14, borderRadius: 7, display: "flex", overflow: "hidden", marginTop: 8, background: C.line }}>
           <div style={{ width: `${(prog.known / prog.total) * 100}%`, background: C.grn }} /><div style={{ width: `${((prog.started - prog.known) / prog.total) * 100}%`, background: C.yel }} />
         </div>
@@ -1077,12 +1108,12 @@ function Drill({ data, setData, back, kind }) {
           <div style={{ fontWeight: 800, fontSize: 20 }}>{name}</div><div className="mute">{desc}</div>
         </button>
       ))}
-      <button className="sec" style={{ marginTop: 6 }} onClick={() => setShowList(!showList)}>{showList ? "Skrýt přehled" : "Zobrazit celý přehled"}</button>
+      <button className="sec" style={{ marginTop: 6 }} onClick={() => setShowList(!showList)}>{showList ? L("Skrýt přehled") : L("Zobrazit celý přehled")}</button>
       {showList && list.map((x) => { const d = drillItem(data, keyer(x)); const st = d ? (isKnown(d) ? C.grn : C.yel) : C.line; return (
         <div key={keyer(x)} className="row" style={{ borderLeft: `5px solid ${st}`, paddingLeft: 10 }}>
           <button onClick={() => speak(kind === "irr" ? `${x[0]}, ${x[1].replace("/", ", ")}, ${x[2]}` : kind === "fr" ? x[0] : `${x[0]} ${x[1]}`)} style={{ textAlign: "left" }}>
             <div>{kind === "irr" ? <><b>{x[0]}</b> · {x[1]} · {x[2]}</> : kind === "fr" ? <b>{x[0]}</b> : <b>{x[0]} {x[1]}</b>}</div>
-            <div className="mute">{kind === "irr" ? x[3] : kind === "fr" ? `${x[1]} · ${x[2]}` : x[2]}{d ? ` · ${d.right || 0}✓ ${d.wrong || 0}✗` : ""}</div>
+            <div className="mute">{kind === "irr" ? L(x[3]) : kind === "fr" ? `${L(x[1])} · ${L(x[2])}` : L(x[2])}{d ? ` · ${d.right || 0}✓ ${d.wrong || 0}✗` : ""}</div>
           </button>
           <span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{x[5]}</span>
         </div>
@@ -1098,13 +1129,13 @@ function Drill({ data, setData, back, kind }) {
         <div className="hero" style={{ textAlign: "center", background: pct >= 70 ? undefined : "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: pct >= 70 ? undefined : "0 6px 0 #B85600" }}>
           <div style={{ fontSize: 48, fontWeight: 800 }}>{pct} %</div><div>{ok} z {results.length} · {title}</div>
         </div>
-        <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>K procvičení</div>
-        {results.filter((r) => !r.ok).length === 0 ? <div className="soft">Bez chyby.</div> : results.filter((r) => !r.ok).map((r, k) => (
+        <div style={{ fontWeight: 800, margin: "16px 0 6px" }}>{L("K procvičení")}</div>
+        {results.filter((r) => !r.ok).length === 0 ? <div className="soft">{L("Bez chyby.")}</div> : results.filter((r) => !r.ok).map((r, k) => (
           <div key={k} className="panel" style={{ marginBottom: 8, padding: "10px 14px" }}>
-            {kind === "irr" ? <><b>{r.x[0]}</b> · {r.x[1]} · {r.x[2]} <span className="soft">· {r.x[3]}</span></> : kind === "fr" ? <><b>{r.x[0]}</b> <span className="soft">· {r.x[1]}</span><div className="soft">→ {r.x[4]}</div></> : <><b>{r.x[0]} {r.x[1]}</b> <span className="soft">· {r.x[2]}</span><div className="soft">{r.x[3].replace("___", r.x[1])}</div></>}
+            {kind === "irr" ? <><b>{r.x[0]}</b> · {r.x[1]} · {r.x[2]} <span className="soft">· {L(r.x[3])}</span></> : kind === "fr" ? <><b>{r.x[0]}</b> <span className="soft">· {L(r.x[1])}</span><div className="soft">→ {r.x[4]}</div></> : <><b>{r.x[0]} {r.x[1]}</b> <span className="soft">· {L(r.x[2])}</span><div className="soft">{r.x[3].replace("___", r.x[1])}</div></>}
           </div>
         ))}
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}><button className="pri" onClick={() => start(mode)}>Další kolo</button><button className="sec" onClick={() => setSession(null)}>Zpět</button></div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}><button className="pri" onClick={() => start(mode)}>{L("Další kolo")}</button><button className="sec" onClick={() => setSession(null)}>{L("Zpět")}</button></div>
       </div>
     );
   }
@@ -1119,16 +1150,16 @@ function Drill({ data, setData, back, kind }) {
       </div>
       <div style={{ height: 16, background: C.line, borderRadius: 8, margin: "12px 0 16px" }}><div style={{ width: `${Math.max(4, (i / session.length) * 100)}%`, height: 16, background: kind === "fr" ? "#E36D00" : "#9B4DE0", borderRadius: 8 }} /></div>
       <div className="panel" style={{ textAlign: "center", borderBottomWidth: 4 }}>
-        <span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{session[i][5]}{kind === "fr" ? ` · ${session[i][2]}` : ""}</span>
+        <span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{session[i][5]}{kind === "fr" ? ` · ${L(session[i][2])}` : ""}</span>
         <div data-t="prompt" style={{ fontSize: q.type === "choice" && kind === "irr" ? 24 : 30, fontWeight: 800, marginTop: 10, lineHeight: 1.3 }}>{q.prompt}</div>
         <div data-t="sub" className="soft" style={{ marginTop: 6 }}>{q.sub}</div>
         {state !== "ask" && (
           <div style={{ marginTop: 14, fontWeight: 800, fontSize: 22, color: state === "right" ? C.grnDark : C.red }}>
-            {state === "right" ? "Správně" : "Špatně"}
+            {state === "right" ? L("Správně") : L("Špatně")}
             <div style={{ color: C.ink, fontSize: 20, marginTop: 4 }}>
               {q.type === "forms" || q.type === "rapid" ? `${q.f.base} · ${q.f.past} · ${q.f.pp}` : q.type === "say" ? q.target : kind === "fr" && mode === "react" ? `${q.prompt} → ${q.answer}` : q.prompt.replace("___", q.answer)}
             </div>
-            {q.type === "say" && said && <div className="soft">Řekl jsi: {said}</div>}
+            {q.type === "say" && said && <div className="soft">{L("Řekl jsi:")} {said}</div>}
           </div>
         )}
       </div>
@@ -1136,7 +1167,7 @@ function Drill({ data, setData, back, kind }) {
         {q.type === "forms" && state === "ask" && (
           <>
             {[0, 1].map((k) => <input key={k} type="text" autoCapitalize="none" autoCorrect="off" value={inputs[k]} placeholder={q.labels[k]} onChange={(e) => setInputs(inputs.map((v, j) => (j === k ? e.target.value : v)))} onKeyDown={(e) => e.key === "Enter" && inputs[0] && inputs[1] && submit()} style={{ marginBottom: 8, fontSize: 20 }} />)}
-            <button className="pri" disabled={!inputs[0] || !inputs[1]} onClick={() => submit()}>Zkontrolovat</button>
+            <button className="pri" disabled={!inputs[0] || !inputs[1]} onClick={() => submit()}>{L("Zkontrolovat")}</button>
           </>
         )}
         {q.type === "choice" && q.options.map((o) => {
@@ -1145,12 +1176,12 @@ function Drill({ data, setData, back, kind }) {
         })}
         {(q.type === "rapid" || q.type === "say") && state === "ask" && (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label="Mluvit" style={{ width: 60, height: 60, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={22} /> : <Mic size={28} />}</button>}
-            <input type="text" autoCapitalize="none" autoCorrect="off" value={inputs[0]} placeholder={q.type === "rapid" ? "nebo napiš: go went gone" : "nebo napiš anglicky"} onChange={(e) => setInputs([e.target.value, ""])} onKeyDown={(e) => e.key === "Enter" && inputs[0] && submit(inputs[0])} />
+            {hasSR && <button onClick={rec ? () => recRef.current?.stop() : startRec} aria-label={L("Mluvit")} style={{ width: 60, height: 60, borderRadius: "50%", background: rec ? C.red : C.grn, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 0 ${rec ? "#C41F1F" : C.grnDark}`, flexShrink: 0 }}>{rec ? <Square size={22} /> : <Mic size={28} />}</button>}
+            <input type="text" autoCapitalize="none" autoCorrect="off" value={inputs[0]} placeholder={q.type === "rapid" ? L("nebo napiš: go went gone") : L("nebo napiš anglicky")} onChange={(e) => setInputs([e.target.value, ""])} onKeyDown={(e) => e.key === "Enter" && inputs[0] && submit(inputs[0])} />
             <button className="sec" disabled={!inputs[0]} onClick={() => submit(inputs[0])}>OK</button>
           </div>
         )}
-        {state !== "ask" && <button className="pri" style={{ marginTop: 10 }} onClick={next}>{i + 1 >= session.length ? "Vyhodnotit" : "Další"}</button>}
+        {state !== "ask" && <button className="pri" style={{ marginTop: 10 }} onClick={next}>{i + 1 >= session.length ? "Vyhodnotit" : L("Další")}</button>}
       </div>
     </div>
   );
@@ -1172,7 +1203,7 @@ function Course({ data, openLesson, startUnitTest }) {
   return (
     <div className="scr">
       <h1 className="h1">Kurz A2.2</h1>
-      <div className="soft" style={{ marginBottom: 12 }}>EF General English A2.2 – 6 unitů, 40 lekcí. Klepni na lekci pro gramatiku, slovíčka, přípravu a konverzaci.</div>
+      <div className="soft" style={{ marginBottom: 12 }}>{L("EF General English A2.2 – 6 unitů, 40 lekcí. Klepni na lekci pro gramatiku, slovíčka, přípravu a konverzaci.")}</div>
       {COURSE.map((u, k) => { const p = unitProgress(data, u); const isOpen = open === u.id; return (
         <div key={u.id} className="panel" style={{ marginBottom: 10, padding: 0, overflow: "hidden", borderLeft: `8px solid ${UNIT_COLORS[k]}` }}>
           <button onClick={() => setOpen(isOpen ? null : u.id)} style={{ width: "100%", textAlign: "left", padding: "14px 16px" }}>
@@ -1187,11 +1218,11 @@ function Course({ data, openLesson, startUnitTest }) {
               {u.lessons.map((l) => { const st = courseStatus(data, l.id).status; return (
                 <button key={l.id} className="row" style={{ width: "100%", textAlign: "left", gap: 10 }} onClick={() => openLesson(l.id)}>
                   <span style={{ width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: st === "done" ? C.grn : st === "now" ? C.yel : C.line, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{st === "done" ? <Check size={16} /> : st === "now" ? "▶" : ""}</span>
-                  <span style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>{l.n} · {l.title}</div><div className="mute">{l.grammar.map((g) => GRAMMAR[g].name).join(", ")}{l.grammar.length && l.vocab ? " · " : ""}{l.cz}</div></span>
+                  <span style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>{l.n} · {l.title}</div><div className="mute">{l.grammar.map((g) => GRAMMAR[g].name).join(", ")}{l.grammar.length && l.vocab ? " · " : ""}{L(l.cz)}</div></span>
                   <span className="mute">s. {l.page}</span>
                 </button>
               ); })}
-              <button className="sec" style={{ marginTop: 12 }} onClick={() => startUnitTest(u.id)} disabled={p.words < 4}>Test z unitu {u.n}{p.words < 4 ? " (nejdřív přidej slovíčka)" : ""}</button>
+              <button className="sec" style={{ marginTop: 12 }} onClick={() => startUnitTest(u.id)} disabled={p.words < 4}>Test z unitu {u.n}{p.words < 4 ? L(" (nejdřív přidej slovíčka)") : ""}</button>
             </div>
           )}
         </div>
@@ -1200,7 +1231,7 @@ function Course({ data, openLesson, startUnitTest }) {
   );
 }
 
-const PREP_SYS = `You prepare a Czech A2.2 English student for the next lesson of his EF course. Return ONLY compact JSON: {"words":[{"en":"","ipa":"","cz":"","ex":"short example","lv":"A1-C2"}]} with the 12 most useful words or phrases for the topic given, suited to A2 level. Keep examples under 9 words.`;
+const PREP_SYS = () => `You prepare an A2.2 English student (native language: ${langName()}) for the next lesson of his EF course. Return ONLY compact JSON: {"words":[{"en":"","ipa":"","cz":"translation into ${langName()}","ex":"short example","lv":"A1-C2"}]} with the 12 most useful words or phrases for the topic given, suited to A2 level. Keep examples under 9 words.`;
 
 function CourseLesson({ data, setData, id, back, openMaterial, talk, drill, go }) {
   const l = findCourseLesson(id); const st = courseStatus(data, id);
@@ -1215,72 +1246,72 @@ function CourseLesson({ data, setData, id, back, openMaterial, talk, drill, go }
   async function prepare() {
     setBusy(true); setErr("");
     try {
-      const j = parseJSON(await askClaude([{ role: "user", content: `Lesson: ${l.title}. Vocabulary topic: ${l.vocab || l.cz}. Grammar: ${l.grammar.map((g) => GRAMMAR[g].name).join(", ") || "none"}.` }], PREP_SYS));
+      const j = parseJSON(await askClaude([{ role: "user", content: `Lesson: ${l.title}. Vocabulary topic: ${l.vocab || l.cz}. Grammar: ${l.grammar.map((g) => GRAMMAR[g].name).join(", ") || "none"}.` }], PREP_SYS()));
       const lid = uid();
-      const lesson = { id: lid, title: `Příprava: ${l.title}`, level: "A2", grammar: l.grammar.map((g) => ({ name: GRAMMAR[g].name, cz: GRAMMAR[g].cz, ex: GRAMMAR[g].ex[0] })), created: Date.now(), unitLesson: id };
+      const lesson = { id: lid, title: `${L("Příprava")}: ${l.title}`, level: "A2", grammar: l.grammar.map((g) => ({ name: GRAMMAR[g].name, cz: L(GRAMMAR[g].cz), ex: GRAMMAR[g].ex[0] })), created: Date.now(), unitLesson: id };
       const words = (j.words || []).filter((w) => w.en && w.cz).map((w) => ({ id: uid(), lessonId: lid, en: w.en, ipa: w.ipa || "", cz: w.cz, ex: w.ex || "", lv: LEVELS.includes(w.lv) ? w.lv : "A2", ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: 0 }));
       const nd = { ...data, lessons: [...data.lessons, lesson], words: [...data.words, ...words], course: [...data.course.filter((c) => c.id !== id), { ...st, preparedLessonId: lid }] };
       setData(nd); await saveData(nd);
-    } catch (e) { setErr("Příprava se nepovedla: " + e.message); }
+    } catch (e) { setErr(L("Příprava se nepovedla: ") + e.message); }
     setBusy(false);
   }
   if (gd) return <GrammarDrill gkey={gd} back={() => setGd(null)} />;
   return (
     <div className="scr">
-      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Kurz</button>
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Kurz")}</button>
       <div className="mute" style={{ marginTop: 10 }}>Unit {l.unit.n} {l.unit.title} · Lesson {l.n} · str. {l.page}</div>
       <h1 className="h1" style={{ marginTop: 2 }}>{l.title}</h1>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {[["todo", "Čeká"], ["now", "Probíhá"], ["done", "Hotovo"]].map(([v, n]) => <button key={v} className="sec" style={st.status === v ? { background: v === "done" ? C.grn : v === "now" ? C.yel : C.ink, color: v === "now" ? "#5a4300" : "#fff", borderColor: "transparent" } : {}} onClick={() => setStatus(v)}>{n}</button>)}
+        {[["todo", L("Čeká")], ["now", L("Probíhá")], ["done", "Hotovo"]].map(([v, n]) => <button key={v} className="sec" style={st.status === v ? { background: v === "done" ? C.grn : v === "now" ? C.yel : C.ink, color: v === "now" ? "#5a4300" : "#fff", borderColor: "transparent" } : {}} onClick={() => setStatus(v)}>{n}</button>)}
       </div>
-      {l.grammar.length > 0 && <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Gramatika</div>}
+      {l.grammar.length > 0 && <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>{L("Gramatika")}</div>}
       {l.grammar.map((g) => (
         <div key={g} className="panel" style={{ marginBottom: 10 }}>
           <div style={{ fontWeight: 800, fontSize: 19 }}>{GRAMMAR[g].name}</div>
-          <div className="soft" style={{ marginTop: 4 }}>{GRAMMAR[g].cz}</div>
-          {GRAMMAR[g].ex.map((e) => <div key={e} style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}><button onClick={() => speak(e)} aria-label="Přehrát"><Volume2 size={16} color={C.blu} /></button>{e}</div>)}
-          <button className="sec" style={{ marginTop: 10 }} onClick={() => setGd(g)}><Pencil size={16} /> Dril</button>
+          <div className="soft" style={{ marginTop: 4 }}>{L(GRAMMAR[g].cz)}</div>
+          {GRAMMAR[g].ex.map((e) => <div key={e} style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center" }}><button onClick={() => speak(e)} aria-label={L("Přehrát")}><Volume2 size={16} color={C.blu} /></button>{e}</div>)}
+          <button className="sec" style={{ marginTop: 10 }} onClick={() => setGd(g)}><Pencil size={16} /> {L("Dril")}</button>
         </div>
       ))}
-      {l.drill && <button className="tileC" style={{ background: l.drill === "irr" ? "linear-gradient(160deg,#CE82FF,#9B4DE0)" : "linear-gradient(160deg,#2EC4B6,#1B9C90)", boxShadow: `0 5px 0 ${l.drill === "irr" ? "#7A35B8" : "#13736A"}`, marginBottom: 10 }} onClick={() => drill(l.drill)}><div style={{ fontWeight: 800, fontSize: 19 }}>{l.drill === "irr" ? "Dril nepravidelných sloves" : "Dril frázových sloves"}</div><div className="mute">tvary, věty, rychlopalba</div></button>}
+      {l.drill && <button className="tileC" style={{ background: l.drill === "irr" ? "linear-gradient(160deg,#CE82FF,#9B4DE0)" : "linear-gradient(160deg,#2EC4B6,#1B9C90)", boxShadow: `0 5px 0 ${l.drill === "irr" ? "#7A35B8" : "#13736A"}`, marginBottom: 10 }} onClick={() => drill(l.drill)}><div style={{ fontWeight: 800, fontSize: 19 }}>{l.drill === "irr" ? L("Dril nepravidelných sloves") : L("Dril frázových sloves")}</div><div className="mute">{L("tvary, věty, rychlopalba")}</div></button>}
       {l.vocab && (
         <>
-          <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>Slovíčka: {l.cz}</div>
+          <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>{L("Slovíčka:")} {L(l.cz)}</div>
           {prepared ? (
             <button className="tile" style={{ marginBottom: 10 }} onClick={() => openMaterial(prepared.id)}>
-              <div style={{ fontWeight: 800 }}>{prepared.title}</div><div className="mute">{data.words.filter((w) => w.lessonId === prepared.id).length} slovíček · otevřít</div>
+              <div style={{ fontWeight: 800 }}>{prepared.title}</div><div className="mute">{data.words.filter((w) => w.lessonId === prepared.id).length} {L("slovíček · otevřít")}</div>
             </button>
           ) : (
-            <button className="pri" style={{ marginBottom: 10, background: C.blu, boxShadow: `0 4px 0 ${C.bluDark}` }} disabled={busy} onClick={prepare}>{busy ? "Připravuji…" : "Připravit na lekci (12 slovíček)"}</button>
+            <button className="pri" style={{ marginBottom: 10, background: C.blu, boxShadow: `0 4px 0 ${C.bluDark}` }} disabled={busy} onClick={prepare}>{busy ? L("Připravuji…") : L("Připravit na lekci (12 slovíček)")}</button>
           )}
           <Err msg={err} />
         </>
       )}
-      <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>Materiály ze školy</div>
-      {linked.filter((x) => x.id !== st.preparedLessonId).length === 0 ? <div className="soft" style={{ marginBottom: 10 }}>Zatím žádné. Vyfocené materiály se sem přiřadí automaticky.</div> : linked.filter((x) => x.id !== st.preparedLessonId).map((x) => (
-        <button key={x.id} className="tile" style={{ marginBottom: 8 }} onClick={() => openMaterial(x.id)}><div style={{ fontWeight: 800 }}>{x.title}</div><div className="mute">{data.words.filter((w) => w.lessonId === x.id).length} slovíček</div></button>
+      <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>{L("Materiály ze školy")}</div>
+      {linked.filter((x) => x.id !== st.preparedLessonId).length === 0 ? <div className="soft" style={{ marginBottom: 10 }}>{L("Zatím žádné. Vyfocené materiály se sem přiřadí automaticky.")}</div> : linked.filter((x) => x.id !== st.preparedLessonId).map((x) => (
+        <button key={x.id} className="tile" style={{ marginBottom: 8 }} onClick={() => openMaterial(x.id)}><div style={{ fontWeight: 800 }}>{x.title}</div><div className="mute">{data.words.filter((w) => w.lessonId === x.id).length} {L("slovíček")}</div></button>
       ))}
-      <button className="sec" style={{ marginBottom: 10 }} onClick={() => go("add")}><Camera size={16} /> Přidat materiál</button>
-      <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>Konverzace</div>
+      <button className="sec" style={{ marginBottom: 10 }} onClick={() => go("add")}><Camera size={16} /> {L("Přidat materiál")}</button>
+      <div style={{ fontWeight: 800, fontSize: 20, margin: "10px 0 6px" }}>{L("Konverzace")}</div>
       <button className="tileC" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", boxShadow: "0 5px 0 #0C5E9C" }} onClick={() => talk({ id: "course:" + id, title: l.title, focus: `${l.grammar.map((g) => GRAMMAR[g].name).join(", ") || "general conversation"}; topic: ${l.vocab || l.cz}`, wordIds: linked.map((x) => x.id) })}>
-        <Mic size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 19 }}>Mluvit k této lekci</div><div className="mute">lektor cílí na: {l.grammar.map((g) => GRAMMAR[g].name).join(", ") || l.cz}</div>
+        <Mic size={26} /><div style={{ fontWeight: 800, marginTop: 8, fontSize: 19 }}>{L("Mluvit k této lekci")}</div><div className="mute">{L("lektor cílí na:")} {l.grammar.map((g) => GRAMMAR[g].name).join(", ") || L(l.cz)}</div>
       </button>
     </div>
   );
 }
 
-const GDRILL_SYS = `Create a grammar drill for a Czech A2.2 English learner. Return ONLY JSON: {"items":[{"s":"sentence with ___","a":"correct answer","o":["3 wrong options"],"why":"very short explanation in Czech"}]}. 8 items testing exactly the grammar point given, natural everyday sentences under 12 words, each item a different sentence.`;
+const GDRILL_SYS = () => `Create a grammar drill for an A2.2 English learner (native language: ${langName()}). Return ONLY JSON: {"items":[{"s":"sentence with ___","a":"correct answer","o":["3 wrong options"],"why":"very short explanation in ${langName()}"}]}. 8 items testing exactly the grammar point given, natural everyday sentences under 12 words, each item a different sentence.`;
 function GrammarDrill({ gkey, back }) {
   const g = GRAMMAR[gkey];
   const [items, setItems] = useState(null); const [i, setI] = useState(0); const [pick, setPick] = useState(null); const [score, setScore] = useState(0); const [err, setErr] = useState("");
-  useEffect(() => { askClaude([{ role: "user", content: `Grammar point: ${g.name}. Notes: ${g.cz}. Examples: ${g.ex.join(" | ")}` }], GDRILL_SYS).then((t) => setItems(parseJSON(t).items)).catch((e) => setErr("Dril se nepodařilo připravit: " + e.message)); }, []);
+  useEffect(() => { askClaude([{ role: "user", content: `Grammar point: ${g.name}. Notes: ${g.cz}. Examples: ${g.ex.join(" | ")}` }], GDRILL_SYS()).then((t) => setItems(parseJSON(t).items)).catch((e) => setErr(L("Dril se nepodařilo připravit: ") + e.message)); }, []);
   const opts = useMemo(() => (items && items[i] ? shuffle([items[i].a, ...items[i].o]) : []), [items, i]);
-  if (err) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><Err msg={err} /></div>;
-  if (!items) return <div className="scr"><button className="soft" onClick={back}>Zpět</button><div className="soft" style={{ marginTop: 20 }}>Připravuji dril: {g.name}…</div></div>;
+  if (err) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><Err msg={err} /></div>;
+  if (!items) return <div className="scr"><button className="soft" onClick={back}>{L("Zpět")}</button><div className="soft" style={{ marginTop: 20 }}>{L("Připravuji dril:")} {g.name}…</div></div>;
   if (i >= items.length) return (
     <div className="scr" style={{ textAlign: "center", paddingTop: 60 }}>
       <div style={{ fontSize: 44, fontWeight: 800 }}>{score} / {items.length}</div><div className="soft">{g.name}</div>
-      <button className="pri" style={{ marginTop: 20 }} onClick={back}>Zpět na lekci</button>
+      <button className="pri" style={{ marginTop: 20 }} onClick={back}>{L("Zpět na lekci")}</button>
     </div>
   );
   const it = items[i];
@@ -1291,7 +1322,7 @@ function GrammarDrill({ gkey, back }) {
       <div style={{ fontSize: 24, margin: "10px 0 20px", lineHeight: 1.4 }}>{it.s}</div>
       {opts.map((o) => { const s = pick ? (o === it.a ? { background: C.greenSoft, borderColor: C.grn } : o === pick ? { background: C.redSoft, borderColor: C.red } : {}) : {}; return <button key={o} className="tile" style={{ marginBottom: 8, fontSize: 20, ...s }} onClick={() => { if (!pick) { setPick(o); if (o === it.a) setScore(score + 1); else speak(it.s.replace("___", it.a)); } }}>{o}</button>; })}
       {pick && <div className="panel" style={{ marginTop: 6, background: pick === it.a ? C.greenSoft : "#FFF9E6" }}><b>{it.s.replace("___", it.a)}</b>{it.why && <div className="soft">{it.why}</div>}</div>}
-      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>Další</button>}
+      {pick && <button className="pri" style={{ marginTop: 10 }} onClick={() => { setPick(null); setI(i + 1); }}>{L("Další")}</button>}
     </div>
   );
 }
@@ -1312,58 +1343,58 @@ function Stats({ data }) {
   const pct = (n) => (ws.length ? (n / ws.length) * 100 : 0);
   return (
     <div className="scr">
-      <h1 className="h1">Statistiky</h1>
+      <h1 className="h1">{L("Statistiky")}</h1>
       <div className="panel" style={{ background: "linear-gradient(160deg,#1CB0F6,#1179C7)", color: "#fff", border: "none", boxShadow: "0 5px 0 #0C5E9C" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute" style={{ color: "rgba(255,255,255,.8)" }}>Odhadovaná úroveň</span>{ws.length >= 8 && <span style={{ fontSize: 12, color: "#fff", fontWeight: 800 }}>{level} → {next}</span>}</div>
-        {ws.length < 8 ? <div className="soft" style={{ marginTop: 4, color: "rgba(255,255,255,.9)" }}>Skupina A2.2. Přidej lekce a zopakuj slovíčka, pak úroveň zpřesním.</div> : (
-          <div style={{ fontSize: 26, fontWeight: 600, marginTop: 2 }}>{level}<span className="soft" style={{ fontWeight: 400, fontSize: 14 }}> · {strong ? "silné" : "rozpracované"}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span className="mute" style={{ color: "rgba(255,255,255,.8)" }}>{L("Odhadovaná úroveň")}</span>{ws.length >= 8 && <span style={{ fontSize: 12, color: "#fff", fontWeight: 800 }}>{level} → {next}</span>}</div>
+        {ws.length < 8 ? <div className="soft" style={{ marginTop: 4, color: "rgba(255,255,255,.9)" }}>{L("Skupina A2.2. Přidej lekce a zopakuj slovíčka, pak úroveň zpřesním.")}</div> : (
+          <div style={{ fontSize: 26, fontWeight: 600, marginTop: 2 }}>{level}<span className="soft" style={{ fontWeight: 400, fontSize: 14 }}> · {strong ? L("silné") : L("rozpracované")}</span></div>
         )}
         <div style={{ display: "flex", gap: 3, marginTop: 10 }}>{LEVELS.map((lv, i) => <div key={lv} style={{ flex: 1, height: 8, borderRadius: 4, background: i <= LEVELS.indexOf(level) && ws.length >= 8 ? "#fff" : "rgba(255,255,255,.3)" }} />)}</div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>{LEVELS.map((lv) => <span key={lv} style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,.85)" }}>{lv}</span>)}</div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", textAlign: "center", marginTop: 14 }}>
-        <div><div style={{ fontSize: 24, fontWeight: 600 }}>{ws.length}</div><div className="mute">celkem</div></div>
-        <div><div style={{ fontSize: 24, fontWeight: 600, color: C.green }}>{known}</div><div className="mute">umím</div></div>
-        <div><div style={{ fontSize: 24, fontWeight: 600, color: C.amber }}>{learning}</div><div className="mute">učím se</div></div>
+        <div><div style={{ fontSize: 24, fontWeight: 600 }}>{ws.length}</div><div className="mute">{L("celkem")}</div></div>
+        <div><div style={{ fontSize: 24, fontWeight: 600, color: C.green }}>{known}</div><div className="mute">{L("umím")}</div></div>
+        <div><div style={{ fontSize: 24, fontWeight: 600, color: C.amber }}>{learning}</div><div className="mute">{L("učím se")}</div></div>
       </div>
       <div style={{ height: 14, borderRadius: 7, display: "flex", overflow: "hidden", marginTop: 10, background: C.line }}>
         <div style={{ width: `${pct(known)}%`, background: C.grn }} /><div style={{ width: `${pct(learning)}%`, background: C.yel }} />
       </div>
-      <div className="mute" style={{ marginTop: 4 }}>{fresh} nových, ještě neopakovaných</div>
-      <div style={{ fontWeight: 500, margin: "20px 0 4px" }}>Slovíčka podle úrovně</div>
+      <div className="mute" style={{ marginTop: 4 }}>{fresh} {L("nových, ještě neopakovaných")}</div>
+      <div style={{ fontWeight: 500, margin: "20px 0 4px" }}>{L("Slovíčka podle úrovně")}</div>
       {by.filter((b) => b.n > 0).map((b) => (
-        <div key={b.lv} className="row"><span>{b.lv}</span><span className="soft">{b.n} · umím {Math.round(b.p * 100)} %</span></div>
+        <div key={b.lv} className="row"><span>{b.lv}</span><span className="soft">{b.n} · {L("umím")} {Math.round(b.p * 100)} %</span></div>
       ))}
-      <div style={{ fontWeight: 500, margin: "20px 0 4px" }}>Konverzace</div>
-      {ss.length === 0 ? <div className="soft">Zatím žádná. Zkus si popovídat s lektorem.</div> : (
+      <div style={{ fontWeight: 500, margin: "20px 0 4px" }}>{L("Konverzace")}</div>
+      {ss.length === 0 ? <div className="soft">{L("Zatím žádná. Zkus si popovídat s lektorem.")}</div> : (
         <>
-          <div className="row"><span>Vět bez chyby</span><span className="soft">{turns ? Math.round((ok / turns) * 100) : 0} % z {turns}</span></div>
-          <div className="row"><span>Počet rozhovorů</span><span className="soft">{ss.length}</span></div>
-          {ss.slice(-1)[0].errs.length > 0 && <div className="soft" style={{ marginTop: 8 }}>Poslední opravy: {ss.slice(-1)[0].errs.slice(0, 3).join(" · ")}</div>}
+          <div className="row"><span>{L("Vět bez chyby")}</span><span className="soft">{turns ? Math.round((ok / turns) * 100) : 0} % z {turns}</span></div>
+          <div className="row"><span>{L("Počet rozhovorů")}</span><span className="soft">{ss.length}</span></div>
+          {ss.slice(-1)[0].errs.length > 0 && <div className="soft" style={{ marginTop: 8 }}>{L("Poslední opravy:")} {ss.slice(-1)[0].errs.slice(0, 3).join(" · ")}</div>}
         </>
       )}
-      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>Věty z oprav</div>
-      {data.sentences.length === 0 ? <div className="soft">Zatím žádné.</div> : (
+      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>{L("Věty z oprav")}</div>
+      {data.sentences.length === 0 ? <div className="soft">{L("Zatím žádné.")}</div> : (
         <>
-          <div className="row"><span>Celkem · umím</span><span className="soft">{data.sentences.length} · {data.sentences.filter(isKnown).length}</span></div>
-          {Object.entries(data.sentences.reduce((a, x) => { const k = x.type || "jiné"; a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => (
+          <div className="row"><span>{L("Celkem · umím")}</span><span className="soft">{data.sentences.length} · {data.sentences.filter(isKnown).length}</span></div>
+          {Object.entries(data.sentences.reduce((a, x) => { const k = x.type || L("jiné"); a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]).map(([k, n]) => (
             <div key={k} className="row"><span>{k}</span><span className="soft">{n}×</span></div>
           ))}
         </>
       )}
-      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>Drily</div>
-      {[["irr", "Nepravidelná slovesa", IRREGULAR], ["phr", "Frázová slovesa", PHRASAL], ["fr", "Hovorové fráze", PHRASES]].map(([k, n, l]) => { const p = drillProgress(data, k, l); const ds = data.drill.filter((d) => d.kind === k); const r = ds.reduce((a, d) => a + (d.right || 0), 0), w = ds.reduce((a, d) => a + (d.wrong || 0), 0); return (
-        <div key={k} className="row"><span>{n}</span><span className="soft">{p.known} z {p.total} · úspěšnost {r + w ? Math.round((r / (r + w)) * 100) : 0} %</span></div>
+      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>{L("Drily")}</div>
+      {[["irr", L("Nepravidelná slovesa"), IRREGULAR], ["phr", L("Frázová slovesa"), PHRASAL], ["fr", L("Hovorové fráze"), PHRASES]].map(([k, n, l]) => { const p = drillProgress(data, k, l); const ds = data.drill.filter((d) => d.kind === k); const r = ds.reduce((a, d) => a + (d.right || 0), 0), w = ds.reduce((a, d) => a + (d.wrong || 0), 0); return (
+        <div key={k} className="row"><span>{n}</span><span className="soft">{p.known} z {p.total} · {L("úspěšnost")} {r + w ? Math.round((r / (r + w)) * 100) : 0} %</span></div>
       ); })}
-      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>Testy</div>
-      {data.tests.length === 0 ? <div className="soft">Zatím žádný.</div> : (
+      <div style={{ fontWeight: 800, margin: "20px 0 4px" }}>{L("Testy")}</div>
+      {data.tests.length === 0 ? <div className="soft">{L("Zatím žádný.")}</div> : (
         <>
-          <div className="row"><span>Počet testů</span><span className="soft">{data.tests.length}</span></div>
-          <div className="row"><span>Průměrná úspěšnost</span><span className="soft">{Math.round(data.tests.reduce((a, t) => a + t.correct / t.total, 0) / data.tests.length * 100)} %</span></div>
-          <div className="row"><span>Poslední test</span><span className="soft">{Math.round(data.tests.slice(-1)[0].correct / data.tests.slice(-1)[0].total * 100)} %</span></div>
+          <div className="row"><span>{L("Počet testů")}</span><span className="soft">{data.tests.length}</span></div>
+          <div className="row"><span>{L("Průměrná úspěšnost")}</span><span className="soft">{Math.round(data.tests.reduce((a, t) => a + t.correct / t.total, 0) / data.tests.length * 100)} %</span></div>
+          <div className="row"><span>{L("Poslední test")}</span><span className="soft">{Math.round(data.tests.slice(-1)[0].correct / data.tests.slice(-1)[0].total * 100)} %</span></div>
         </>
       )}
-      <div className="mute" style={{ marginTop: 24 }}>Umím = interval opakování 7 dní a víc. Úroveň = nejvyšší CEFR, kde umíš aspoň 70 % slovíček.</div>
+      <div className="mute" style={{ marginTop: 24 }}>{L("Umím = interval opakování 7 dní a víc. Úroveň = nejvyšší CEFR, kde umíš aspoň 70 % slovíček.")}</div>
     </div>
   );
 }
@@ -1371,34 +1402,37 @@ function Stats({ data }) {
 function Account({ back, logout }) {
   return (
     <div className="scr">
-      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> Zpět</button>
-      <h1 className="h1" style={{ marginTop: 10 }}>Účet</h1>
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
+      <h1 className="h1" style={{ marginTop: 10 }}>{L("Účet")}</h1>
       <div className="panel" style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <UserCircle size={40} color={C.blu} />
-        <div><div style={{ fontWeight: 800 }}>Jan</div><div className="soft">Přihlášen PINem · data v Google tabulce</div></div>
+        <div><div style={{ fontWeight: 800 }}>Jan</div><div className="soft">{L("Přihlášen PINem · data v Google tabulce")}</div></div>
       </div>
-      <div className="soft" style={{ marginTop: 16 }}>Odhlášením se z tohoto zařízení smaže PIN i místní kopie dat. Po opětovném přihlášení se vše načte z tabulky.</div>
-      <button className="pri" style={{ marginTop: 16, background: C.red, boxShadow: "0 4px 0 #C41F1F" }} onClick={logout}><LogOut size={18} /> Odhlásit</button>
+      <div className="soft" style={{ marginTop: 16 }}>{L("Odhlášením se z tohoto zařízení smaže PIN i místní kopie dat. Po opětovném přihlášení se vše načte z tabulky.")}</div>
+      <button className="pri" style={{ marginTop: 16, background: C.red, boxShadow: "0 4px 0 #C41F1F" }} onClick={logout}><LogOut size={18} /> {L("Odhlásit")}</button>
       <div className="mute" style={{ marginTop: 24 }}>Verze aplikace {VERSION}</div>
     </div>
   );
 }
 
 function PinScreen({ onDone }) {
+  useI18n();
   const [pin, setP] = useState("");
   return (
     <div className="scr" style={{ paddingTop: 80 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>{Object.entries(LANGS).map(([k, v]) => <button key={k} onClick={() => setLangGlobal(k)} title={v.label} style={{ fontSize: 22, padding: "4px 6px", borderRadius: 10, background: getLang() === k ? "#fff" : "transparent", border: getLang() === k ? `2px solid ${C.line}` : "2px solid transparent", opacity: getLang() === k ? 1 : 0.55 }}>{v.flag}</button>)}</div>
       <img src="/icons/icon-192.png" alt="" width="72" height="72" style={{ borderRadius: 18 }} />
       <h1 className="h1" style={{ marginTop: 16 }}>English</h1>
-      {!isConfigured() && <Err msg="Chybí VITE_SHEETS_URL v nastavení Netlify (adresa Apps Script webové aplikace)." />}
-      <div className="soft" style={{ marginBottom: 10 }}>Zadej PIN aplikace.</div>
-      <input type="text" inputMode="numeric" value={pin} onChange={(e) => setP(e.target.value)} placeholder="PIN" onKeyDown={(e) => e.key === "Enter" && pin && onDone(pin)} />
-      <button className="pri" style={{ marginTop: 12 }} disabled={!pin} onClick={() => onDone(pin)}><LogIn size={18} /> Přihlásit</button>
+      {!isConfigured() && <Err msg={L("Chybí VITE_SHEETS_URL v nastavení Netlify (adresa Apps Script webové aplikace).")} />}
+      <div className="soft" style={{ marginBottom: 10 }}>{L("Zadej PIN aplikace.")}</div>
+      <input type="text" inputMode="numeric" value={pin} onChange={(e) => setP(e.target.value)} placeholder={L("PIN")} onKeyDown={(e) => e.key === "Enter" && pin && onDone(pin)} />
+      <button className="pri" style={{ marginTop: 12 }} disabled={!pin} onClick={() => onDone(pin)}><LogIn size={18} /> {L("Přihlásit")}</button>
     </div>
   );
 }
 
 export default function App() {
+  const { lang } = useI18n();
   const [data, setData] = useState(null);
   const [needPin, setNeedPin] = useState(!getPin());
   const [tab, setTab] = useState("today");
@@ -1411,13 +1445,19 @@ export default function App() {
   const [loadErr, setLoadErr] = useState("");
   const [online, setOnline] = useState(null);
 
+  const dataRef = useRef(null); dataRef.current = data;
   async function boot() {
     setLoadErr("");
     try {
       const r = await loadData();
       setData(r.data);
+      configureI18n({
+        rows: r.data.i18n,
+        translate: async (lg, texts) => parseJSON(await askClaude([{ role: "user", content: JSON.stringify(texts) }], `Translate these Czech UI strings of a language-learning app into ${LANGS[lg].name}. Keep punctuation, placeholders, numbers and the meaning; keep it short and natural. Return ONLY JSON: {"translations":{"<czech>":"<translation>", ...}} with every input string as a key.`)).translations,
+        onPersist: (rows) => { const cur = dataRef.current; if (!cur) return; const ids = new Set(rows.map((x) => x.id)); const nd = { ...cur, i18n: [...cur.i18n.filter((x) => !ids.has(x.id)), ...rows] }; setData(nd); saveData(nd); },
+      });
       setOnline(r.online);
-      if (!r.online) setBanner("Offline režim: " + (r.error || "") + " Používám data uložená v zařízení.");
+      if (!r.online) setBanner(L("Offline režim: ") + (r.error || "") + L(" Používám data uložená v zařízení."));
     } catch (e) {
       clearPin(); setNeedPin(true); setLoadErr(e.message);
     }
@@ -1430,11 +1470,11 @@ export default function App() {
   useEffect(() => { if (banner) { const t = setTimeout(() => setBanner(""), 8000); return () => clearTimeout(t); } }, [banner]);
 
   if (needPin) return <div className="ef"><style>{css}</style><PinScreen onDone={(p) => { setPin(p); setNeedPin(false); boot(); }} />{loadErr && <div className="scr"><Err msg={loadErr} /></div>}</div>;
-  if (!data) return <div className="ef"><style>{css}</style><div className="scr soft">Načítám z tabulky…</div></div>;
+  if (!data) return <div className="ef"><style>{css}</style><div className="scr soft">{L("Načítám z tabulky…")}</div></div>;
 
   const go = (v) => { if (v.startsWith("course:")) { setCourseLessonId(v.slice(7)); setView("course-lesson"); } else setView(v); };
   const back = () => { setView(null); setTalkLesson(null); };
-  const logout = () => { if (confirm("Odhlásit toto zařízení?")) { clearPin(); localStorage.removeItem("english:cache"); setData(null); setView(null); setTab("today"); setNeedPin(true); } };
+  const logout = () => { if (confirm(L("Odhlásit toto zařízení?"))) { clearPin(); localStorage.removeItem("english:cache"); setData(null); setView(null); setTab("today"); setNeedPin(true); } };
   let body;
   if (view === "account") body = <Account back={back} logout={logout} />;
   else if (view === "review") body = <Review data={data} setData={setData} back={back} />;
@@ -1442,33 +1482,36 @@ export default function App() {
   else if (view === "lesson") body = <LessonDetail data={data} setData={setData} id={lessonId} back={back} talk={(l) => { setTalkLesson(l); setView("talk"); }} />;
   else if (view === "talk") body = <Talk data={data} setData={setData} back={back} lesson={talkLesson} />;
   else if (view === "sentences") body = <SentenceReview data={data} setData={setData} back={back} />;
-  else if (view === "tests") body = <><button className="soft" onClick={back} style={{ position: "absolute", top: 36, left: 20, display: "flex", alignItems: "center", gap: 4, zIndex: 2 }}><ArrowLeft size={16} /> Zpět</button><Tests data={data} go={go} startTest={(o) => { setTestOpts(o); setView("test"); }} /></>;
+  else if (view === "tests") body = <><button className="soft" onClick={back} style={{ position: "absolute", top: 36, left: 20, display: "flex", alignItems: "center", gap: 4, zIndex: 2 }}><ArrowLeft size={16} /> {L("Zpět")}</button><Tests data={data} go={go} startTest={(o) => { setTestOpts(o); setView("test"); }} /></>;
   else if (view === "course-lesson") body = <CourseLesson data={data} setData={setData} id={courseLessonId} back={() => { setView(null); setTab("course"); }} openMaterial={(mid) => { setLessonId(mid); setView("lesson"); }} talk={(l) => { setTalkLesson(l); setView("talk"); }} drill={(k) => setView("drill-" + k)} go={go} />;
   else if (view === "drill-irr") body = <Drill data={data} setData={setData} back={back} kind="irr" />;
   else if (view === "drill-phr") body = <Drill data={data} setData={setData} back={back} kind="phr" />;
   else if (view === "drill-fr") body = <Drill data={data} setData={setData} back={back} kind="fr" />;
   else if (view === "test") body = <TestRun key={JSON.stringify(testOpts)} data={data} setData={setData} back={back} scope={testOpts?.unitId ? "unit" : testOpts?.lessonId ? "lesson" : "all"} lessonId={testOpts?.lessonId || null} unitId={testOpts?.unitId || null} retakeOf={testOpts?.retakeOf || null} />;
   else if (tab === "today") body = <Today data={data} go={go} name="Jane" />;
-  else if (tab === "lessons") body = <Lessons data={data} go={go} open={(id) => { setLessonId(id); setView("lesson"); }} />;
+  else if (tab === "lessons") body = <Lessons data={data} setData={setData} go={go} open={(id) => { setLessonId(id); setView("lesson"); }} />;
   else if (tab === "practice") body = <Practice data={data} go={go} />;
   else if (tab === "course") body = <Course data={data} openLesson={(cid) => { setCourseLessonId(cid); setView("course-lesson"); }} startUnitTest={(uid_) => { setTestOpts({ unitId: uid_ }); setView("test"); }} />;
-  else body = <><Stats data={data} /><button onClick={() => go("account")} aria-label="Účet" style={{ position: "absolute", top: 20, right: 20, color: C.blu }}><UserCircle size={30} /></button></>;
-  const tabs = [["today", "Dnes", Home], ["course", "Kurz", Map], ["lessons", "Lekce", BookOpen], ["practice", "Opakovat", Dumbbell], ["stats", "Statistiky", BarChart3]];
+  else body = <><Stats data={data} /><button onClick={() => go("account")} aria-label={L("Účet")} style={{ position: "absolute", top: 20, right: 20, color: C.blu }}><UserCircle size={30} /></button></>;
+  const tabs = [["today", "Dnes", Home], ["course", "Kurz", Map], ["lessons", "Lekce", BookOpen], ["practice", "Trénink", Dumbbell], ["stats", "Statistiky", BarChart3]];
   return (
     <div className="ef" style={{ position: "relative" }}>
       <style>{css}</style>
       {banner && <div style={{ position: "fixed", top: 36, left: "50%", transform: "translateX(-50%)", maxWidth: 400, width: "calc(100% - 32px)", background: C.amberSoft, color: C.amber, padding: "10px 14px", borderRadius: 12, fontSize: 13, zIndex: 10 }}>{banner}</div>}
-      {!view && (
+      {!view && (<>
+        <div style={{ position: "absolute", top: 6, right: 12, display: "flex", gap: 2, zIndex: 3 }}>
+          {Object.entries(LANGS).map(([k, v]) => <button key={k} onClick={() => setLangGlobal(k)} aria-label={v.label} title={v.label} style={{ fontSize: 18, lineHeight: 1, padding: "3px 4px", borderRadius: 8, background: lang === k ? "#fff" : "transparent", border: lang === k ? `2px solid ${C.line}` : "2px solid transparent", opacity: lang === k ? 1 : 0.55 }}>{v.flag}</button>)}
+        </div>
         <div style={{ position: "absolute", top: 8, left: 0, right: 0, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
           <span className="pill" style={online === null ? { background: C.bg, color: C.mute } : online ? { background: C.greenSoft, color: C.green } : { background: C.redSoft, color: C.red }}>
             {online === null ? "…" : online ? <><Wifi size={11} style={{ verticalAlign: "-1px" }} /> online</> : <><WifiOff size={11} style={{ verticalAlign: "-1px" }} /> offline</>}
           </span>
         </div>
-      )}
+      </>)}
       {body}
       {!view && (
         <nav className="nav">
-          {tabs.map(([id, lbl, Icon]) => <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}><Icon size={20} />{lbl}</button>)}
+          {tabs.map(([id, lbl, Icon]) => <button key={id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}><Icon size={20} />{L(lbl)}</button>)}
           <span style={{ position: "absolute", right: 10, bottom: 2, fontSize: 9, color: C.mute, fontWeight: 700 }}>v{VERSION}</span>
         </nav>
       )}
