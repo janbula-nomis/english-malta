@@ -3,19 +3,27 @@
 const TOKEN = "736251";
 
 const SHEETS = {
-  lessons:  ["id", "title", "level", "grammar", "created"],
+  lessons:  ["id", "title", "level", "grammar", "created", "unitLesson"],
   words:    ["id", "lessonId", "en", "ipa", "cz", "ex", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last"],
   log:      ["id", "d", "wordId", "g"],
   sessions: ["id", "d", "topic", "turns", "ok", "errs"],
   sentences: ["id", "d", "cz", "en", "wrong", "why", "type", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last"],
   tests: ["id", "d", "scope", "lessonId", "total", "correct", "items", "retakeOf"],
+  drill: ["id", "kind", "key", "lv", "ease", "interval", "reps", "lapses", "due", "seen", "last", "right", "wrong"],
+  course: ["id", "status", "preparedLessonId"],
 };
 const JSON_COLS = ["grammar", "errs", "items"];
 
 function sheet_(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
-  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(SHEETS[name]); sh.setFrozenRows(1); }
+  const cols = SHEETS[name];
+  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(cols); sh.setFrozenRows(1); }
+  else {
+    // doplní nové sloupce do hlavičky, když se struktura rozšíří
+    const hdr = sh.getRange(1, 1, 1, cols.length).getValues()[0];
+    if (hdr.join("|") !== cols.join("|")) sh.getRange(1, 1, 1, cols.length).setValues([cols]);
+  }
   return sh;
 }
 function readAll_(name) {
