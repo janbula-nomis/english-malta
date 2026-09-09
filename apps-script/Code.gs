@@ -1,6 +1,7 @@
 // Google Apps Script – API nad tabulkou. Nasadit jako Webová aplikace (Spustit jako: já, Přístup: kdokoli).
 // PIN aplikace – stejný zadej v Netlify jako APP_PIN. Změň, pokud chceš jiný.
 const TOKEN = "736251";
+const API_VERSION = 4; // verze skriptu – aplikace hlásí, když je zastaralá
 
 const SHEETS = {
   lessons:  ["id", "title", "level", "grammar", "created", "unitLesson", "kind"],
@@ -69,7 +70,7 @@ function auth_(t) { return !!t && t === TOKEN; }
 
 function doGet(e) {
   if (!auth_(e.parameter.token)) return ok_({ error: "unauthorized" });
-  const out = {};
+  const out = { apiVersion: API_VERSION };
   Object.keys(SHEETS).forEach((n) => (out[n] = readAll_(n)));
   return ok_(out);
 }
@@ -77,12 +78,13 @@ function doPost(e) {
   const b = JSON.parse(e.postData.contents || "{}");
   if (!auth_(b.token)) return ok_({ error: "unauthorized" });
   const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  const skipped = [];
   try {
     (b.ops || []).forEach((op) => {
-      if (!SHEETS[op.sheet]) return;
+      if (!SHEETS[op.sheet]) { skipped.push(op.sheet); return; }
       if (op.type === "upsert") upsert_(op.sheet, op.rows || []);
       if (op.type === "delete") remove_(op.sheet, (op.ids || []).map(String));
     });
   } finally { lock.releaseLock(); }
-  return ok_({ ok: true });
+  return ok_({ ok: true, apiVersion: API_VERSION, skipped });
 }

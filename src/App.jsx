@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell, Repeat, Puzzle, Map, MessagesSquare } from "lucide-react";
 
-const VERSION = "1.6.0";
+const VERSION = "1.6.1";
 
 import { IRREGULAR, PHRASAL, PARTICLES } from "./drillData.js";
 import { PHRASES } from "./phrasesData.js";
 import { LANGS, L, useI18n, getLang, langName, configureI18n, setLang as setLangGlobal } from "./i18n.js";
 import { COURSE, GRAMMAR, ALL_LESSONS, findCourseLesson } from "./courseData.js";
-import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
+import { REQUIRED_API_VERSION, loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const MY_LEVEL = "A2"; // skupina A2.2 v EF
@@ -1457,6 +1457,7 @@ export default function App() {
         onPersist: (rows) => { const cur = dataRef.current; if (!cur) return; const ids = new Set(rows.map((x) => x.id)); const nd = { ...cur, i18n: [...cur.i18n.filter((x) => !ids.has(x.id)), ...rows] }; setData(nd); saveData(nd); },
       });
       setOnline(r.online);
+      if (r.online && (r.apiVersion || 0) < REQUIRED_API_VERSION) setTimeout(() => setBanner(L("V tabulce běží starý Code.gs (verze") + " " + (r.apiVersion || 0) + " / " + REQUIRED_API_VERSION + "). " + L("Postup v drilech, kurzu a testech se neukládá. Vlož nový Code.gs a nasaď novou verzi.")), 300);
       if (!r.online) setBanner(L("Offline režim: ") + (r.error || "") + L(" Používám data uložená v zařízení."));
     } catch (e) {
       clearPin(); setNeedPin(true); setLoadErr(e.message);
@@ -1467,7 +1468,7 @@ export default function App() {
     window.speechSynthesis?.getVoices();
     if (!needPin) boot();
   }, []);
-  useEffect(() => { if (banner) { const t = setTimeout(() => setBanner(""), 8000); return () => clearTimeout(t); } }, [banner]);
+  useEffect(() => { if (banner) { const t = setTimeout(() => setBanner(""), banner.includes("Code.gs") ? 20000 : 8000); return () => clearTimeout(t); } }, [banner]);
 
   if (needPin) return <div className="ef"><style>{css}</style><PinScreen onDone={(p) => { setPin(p); setNeedPin(false); boot(); }} />{loadErr && <div className="scr"><Err msg={loadErr} /></div>}</div>;
   if (!data) return <div className="ef"><style>{css}</style><div className="scr soft">{L("Načítám z tabulky…")}</div></div>;

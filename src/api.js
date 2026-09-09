@@ -2,6 +2,7 @@
 const SHEETS_URL = import.meta.env.VITE_SHEETS_URL;
 const CACHE = "english:cache";
 const PIN_KEY = "english:pin";
+export const REQUIRED_API_VERSION = 4;
 const EMPTY = { lessons: [], words: [], log: [], sessions: [], sentences: [], tests: [], drill: [], course: [], i18n: [] };
 const SHEET_NAMES = ["lessons", "words", "log", "sessions", "sentences", "tests", "drill", "course", "i18n"];
 
@@ -41,7 +42,7 @@ export async function loadData() {
     const d = normalize(j);
     last = JSON.parse(JSON.stringify(d));
     localStorage.setItem(CACHE, JSON.stringify(d));
-    return { data: d, online: true };
+    return { data: d, online: true, apiVersion: Number(j.apiVersion) || 0 };
   } catch (e) {
     const c = localStorage.getItem(CACHE);
     if (c) { const d = normalize(JSON.parse(c)); last = JSON.parse(JSON.stringify(d)); return { data: d, online: false, error: e.message }; }
@@ -75,7 +76,8 @@ export function saveData(next) {
       const j = await r.json();
       if (j.error) throw new Error(j.error);
       last = snapshot;
-      onError("", true);
+      if (j.skipped && j.skipped.length) onError("Tabulka má starý Code.gs – neuložilo se: " + [...new Set(j.skipped)].join(", ") + ". Nasaď novou verzi skriptu.");
+      else onError("", true);
     } catch (e) {
       onError("Uložení do tabulky selhalo: " + e.message + ". Data zůstávají v zařízení, zkusím to znovu při další změně.");
     }
