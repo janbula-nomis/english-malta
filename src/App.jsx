@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell } from "lucide-react";
 
-const VERSION = "1.3.0";
+const VERSION = "1.3.1";
 
 import { loadData, saveData, askClaude, getPin, setPin, clearPin, isConfigured, setErrorHandler } from "./api.js";
 
@@ -101,7 +101,7 @@ function speak(text) {
 }
 
 const css = `
-.ef{font-family:Nunito,"Segoe UI",system-ui,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#EAF1F8;font-size:17px;line-height:1.5;font-weight:500}
+.ef{font-family:Nunito,"Segoe UI",system-ui,sans-serif;color:${C.ink};max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#EAF1F8;font-size:18px;line-height:1.5;font-weight:500}
 .ef *{box-sizing:border-box}
 .ef button{font:inherit;cursor:pointer;border:none;background:none;color:inherit;padding:0}
 .ef button:focus-visible,.ef input:focus-visible,.ef textarea:focus-visible{outline:3px solid ${C.blu};outline-offset:2px}
@@ -109,7 +109,7 @@ const css = `
 .nav{position:sticky;bottom:0;background:#fff;border-top:2px solid ${C.line};display:flex;justify-content:space-around;padding:8px 0 12px}
 .ef .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:${C.mute};width:72px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:12px;padding:6px 0}
 .nav button.on{color:${C.blu};background:${C.seaSoft};border:2px solid #84D8FF}
-.h1{font-size:26px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px;color:#1179C7}
+.h1{font-size:28px;font-weight:800;letter-spacing:-0.01em;margin:0 0 14px;color:#1179C7}
 .mute{color:${C.mute};font-size:13px;font-weight:700}
 .soft{color:${C.soft};font-size:14px;font-weight:600}
 .ef .panel{background:#fff;border:2px solid #D6E2EE;border-radius:16px;padding:16px}
@@ -126,7 +126,7 @@ const css = `
 .ef .g:active{border-bottom-width:2px;transform:translateY(3px)}
 .g b{display:block;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:.04em}
 .g span{font-size:11px;font-weight:700}
-.ef .bubble{border-radius:18px;padding:13px 16px;max-width:88%;font-size:19px;line-height:1.45;font-weight:500;border:2px solid #D6E2EE;background:#fff}
+.ef .bubble{border-radius:18px;padding:13px 16px;max-width:88%;font-size:20px;line-height:1.45;font-weight:500;border:2px solid #D6E2EE;background:#fff}
 .ef .hero{background:linear-gradient(160deg,#58CC02,#3E9E00);color:#fff;border-radius:22px;padding:18px;box-shadow:0 6px 0 #2F7A00}
 .ef .hero .mute,.ef .hero .soft{color:rgba(255,255,255,.85)}
 .ef .tileC{border:none;border-radius:18px;padding:16px;text-align:left;width:100%;color:#fff;display:block}
