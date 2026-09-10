@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell, Repeat, Puzzle, Map, MessagesSquare } from "lucide-react";
+import { Home, BookOpen, Layers, BarChart3, Camera, Mic, Volume2, ArrowLeft, Check, X, ClipboardPaste, Pencil, Square, LogOut, UserCircle, LogIn, Wifi, WifiOff, MessageSquareText, ClipboardCheck, Dumbbell, Repeat, Puzzle, Map as MapIcon, MessagesSquare } from "lucide-react";
 
-const VERSION = "1.6.2";
+const VERSION = "1.7.1";
 
 import { IRREGULAR, PHRASAL, PARTICLES } from "./drillData.js";
 import { PHRASES } from "./phrasesData.js";
@@ -284,13 +284,26 @@ function Topics({ data, setData, open }) {
   );
 }
 
+function findDuplicates(words) {
+  const groups = new Map();
+  words.forEach((w) => { const k = lemma(w.en); if (!k) return; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(w); });
+  const remove = [];
+  groups.forEach((g) => { if (g.length < 2) return; g.sort((a, b) => (b.reps || 0) - (a.reps || 0) || (b.interval || 0) - (a.interval || 0) || (a.due || 0) - (b.due || 0)); remove.push(...g.slice(1).map((w) => w.id)); });
+  return remove;
+}
 function Lessons({ data, setData, go, open }) {
+  const dupIds = useMemo(() => findDuplicates(data.words), [data.words]);
+  async function cleanup() {
+    if (!confirm(`${L("Odstranit")} ${dupIds.length} ${L("duplicitních slovíček? Zůstane vždy to s nejlepším postupem.")}`)) return;
+    const del = new Set(dupIds); const nd = { ...data, words: data.words.filter((w) => !del.has(w.id)) }; setData(nd); saveData(nd);
+  }
   return (
     <div className="scr">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 className="h1" style={{ margin: 0 }}>{L("Lekce")}</h1>
+        <h1 className="h1" style={{ margin: 0 }}>{L("Témata")}</h1>
         <button className="sec" onClick={() => go("add")}><Camera size={16} /> {L("Přidat")}</button>
       </div>
+      {dupIds.length > 0 && <div className="panel" style={{ marginTop: 12, background: C.amberSoft, borderColor: "#F5D77A", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}><span>{L("Duplicitní slovíčka")}: {dupIds.length}</span><button className="sec" onClick={cleanup}>{L("Uklidit")}</button></div>}
       <div style={{ marginTop: 14 }}>
         <Topics data={data} setData={setData} open={open} />
         {data.lessons.filter((l) => l.kind !== "topic").slice().reverse().map((l) => {
@@ -317,58 +330,177 @@ function Lessons({ data, setData, go, open }) {
   );
 }
 
-const EXTRACT_SYS = () => `You extract English learning material for an adult student attending an English language school (native language: ${langName()}). The student is in an A2.2 (pre-intermediate) class, so include also simpler items he may not know yet. Given a photo/PDF/text of a worksheet, textbook page or notes, return ONLY compact JSON, no prose, no markdown:
-{"title":"short English topic title","level":"CEFR of the material A1-C2","words":[{"en":"word or phrase","ipa":"IPA","cz":"translation into ${langName()}","ex":"short example sentence","lv":"CEFR A1-C2"}],"grammar":[{"name":"short name","cz":"1-2 sentence explanation in ${langName()}","ex":"example sentence"}]}
-Rules: include every vocabulary item worth learning (max 25, pick the most useful if more). Keep examples under 10 words. Grammar max 3 items, empty array if none. Keep JSON compact.
-Also add "unitLesson": the id of the course lesson this material most likely belongs to, chosen from this syllabus (EF General English A2.2), or null if unclear:
+const lemma = (t) => (t || "").toLowerCase().replace(/[’']/g, "'").replace(/^(to|a|an|the)\s+/, "").replace(/\s*\(.*?\)\s*/g, " ").replace(/[^a-z0-9' -]+/g, " ").replace(/\s+/g, " ").trim();
+const EXTRACT_SYS = (known) => `You extract the TAUGHT MATERIAL from photos/PDF/text of an English coursebook page, worksheet, or board notes, for an adult A2.2 (pre-intermediate) student (native language: ${langName()}). Return ONLY compact JSON, no prose, no markdown:
+{"topic":"short English theme, 2-5 words, e.g. 'Present perfect: yet/already/just' or 'Technology'","level":"CEFR of the material A1-C2","source":"textbook|worksheet|board|notes","words":[{"en":"word or phrase","ipa":"IPA","cz":"translation into ${langName()}","ex":"short example sentence","lv":"CEFR A1-C2"}],"grammar":[{"name":"short name","cz":"1-2 sentence explanation in ${langName()}","ex":"example sentence"}],"unitLesson":"course lesson id or null"}
+STRICT RULES:
+- Extract ONLY what the lesson teaches: vocabulary in boxes/lists/glossaries, words in bold or highlighted, the target grammar and its example sentences, useful phrases from the model dialogue or reading text that relate to the theme.
+- IGNORE completely: exercise instructions ("Complete the sentences", "Work in pairs", "Listen and tick", "Match", "Choose the correct option"), rubric text, exercise and page numbers, headings like "Vocabulary"/"Grammar"/"Speaking", answer options of multiple-choice, gap-fill sentences with blanks, names of characters, publisher text.
+- Do NOT include basic function words or A1 words the student certainly knows (the, is, have, go, good, big, house...) unless they are the explicit target of the lesson.
+- Do NOT include any of these words the student already has: ${known.slice(0, 400).join(", ") || "(none)"}.
+- Deduplicate: each lemma once; no separate entries for inflected forms (go/goes/went = one entry "go").
+- Max 25 words, the most useful first. Keep examples under 10 words. Grammar max 3 items, [] if none.
+- If several images are given, they are ONE lesson: merge them into a single topic and word list.
+- unitLesson: choose from this syllabus (EF General English A2.2), or null if unclear:
 ` + ALL_LESSONS.map((l) => `${l.id}: Unit ${l.unit.n} ${l.unit.title} / Lesson ${l.n} ${l.title} – ${l.grammar.map((g) => GRAMMAR[g].name).join(", ")}${l.vocab ? "; vocab: " + l.vocab : ""}`).join("\n");
+
+// návrh cílového tématu: stejná lekce kurzu, jinak podobný název / překryv slov
+function suggestLesson(data, j, newWords) {
+  const cands = data.lessons.filter((l) => l.kind !== "topic");
+  if (j.unitLesson) { const byUnit = cands.filter((l) => l.unitLesson === j.unitLesson).sort((a, b) => b.created - a.created); if (byUnit.length) return byUnit[0].id; }
+  const tw = new Set(lemma(j.topic || "").split(" ").filter((x) => x.length > 3));
+  let best = null, score = 0;
+  for (const l of cands) {
+    const lw = new Set(lemma(l.title).split(" ").filter((x) => x.length > 3));
+    let sc = [...tw].filter((x) => lw.has(x)).length * 2;
+    const ws = data.words.filter((w) => w.lessonId === l.id); const wl = new Set(ws.map((w) => lemma(w.en)));
+    sc += newWords.filter((w) => wl.has(lemma(w.en))).length;
+    if (sc > score) { score = sc; best = l.id; }
+  }
+  return score >= 2 ? best : null;
+}
+
+function ExtractReview({ data, setData, draft, back, openLesson }) {
+  const existing = useMemo(() => { const m = new Map(); data.words.forEach((w) => { const k = lemma(w.en); if (!m.has(k)) m.set(k, w); }); return m; }, [data.words]);
+  const initial = useMemo(() => { const seen = new Set(); return (draft.words || []).filter((w) => w.en && w.cz).map((w) => { const k = lemma(w.en); const dup = existing.has(k) || seen.has(k); seen.add(k); return { ...w, key: k, dup, keep: !dup, cz: w.cz }; }); }, [draft]);
+  const [items, setItems] = useState(initial);
+  const [target, setTarget] = useState(() => suggestLesson(data, draft, initial.filter((w) => !w.dup)) || "new");
+  const [title, setTitle] = useState(draft.topic || draft.title || "Lekce");
+  const [unitLesson, setUnitLesson] = useState(findCourseLesson(draft.unitLesson) ? draft.unitLesson : "");
+  const [busy, setBusy] = useState(false);
+  const keep = items.filter((w) => w.keep);
+  const dups = items.filter((w) => w.dup).length;
+  const tgt = data.lessons.find((l) => l.id === target);
+  async function save() {
+    setBusy(true);
+    let lessonId = target, lessons = data.lessons;
+    if (target === "new") {
+      lessonId = uid();
+      lessons = [...lessons, { id: lessonId, title: title.trim() || "Lekce", level: draft.level || "A2", grammar: draft.grammar || [], created: Date.now(), unitLesson: unitLesson || null }];
+    } else {
+      lessons = lessons.map((l) => l.id !== target ? l : { ...l, grammar: [...(l.grammar || []), ...(draft.grammar || []).filter((g) => !(l.grammar || []).some((x) => lemma(x.name) === lemma(g.name)))], unitLesson: l.unitLesson || unitLesson || null });
+    }
+    const lv = tgt?.level || draft.level || "A2";
+    const words = keep.map((w) => ({ id: uid(), lessonId, en: w.en.trim(), ipa: w.ipa || "", cz: w.cz.trim(), ex: w.ex || "", lv: LEVELS.includes(w.lv) ? w.lv : lv, ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: 0 }));
+    const nd = { ...data, lessons, words: [...data.words, ...words] };
+    setData(nd); await saveData(nd); setBusy(false); openLesson(lessonId);
+  }
+  return (
+    <div className="scr">
+      <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
+      <h1 className="h1" style={{ marginTop: 10 }}>{L("Zkontroluj a zařaď")}</h1>
+      <div className="panel" style={{ marginBottom: 12 }}>
+        <div className="mute">{L("Kam zařadit")}</div>
+        <select value={target} onChange={(e) => setTarget(e.target.value)} style={{ width: "100%", marginTop: 6, padding: "10px 12px", borderRadius: 12, border: `2px solid ${C.line}`, font: "inherit", background: "#fff" }}>
+          <option value="new">{L("Nové téma")}: {draft.topic || draft.title}</option>
+          {data.lessons.filter((l) => l.kind !== "topic").slice().reverse().map((l) => <option key={l.id} value={l.id}>{L("Přidat do")}: {l.title} ({data.words.filter((w) => w.lessonId === l.id).length})</option>)}
+        </select>
+        {target === "new" && <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} style={{ marginTop: 8 }} placeholder={L("Název tématu")} />}
+        {target === "new" && (
+          <select value={unitLesson} onChange={(e) => setUnitLesson(e.target.value)} style={{ width: "100%", marginTop: 8, padding: "10px 12px", borderRadius: 12, border: `2px solid ${C.line}`, font: "inherit", background: "#fff", fontSize: 16 }}>
+            <option value="">{L("Lekce kurzu: nezařazeno")}</option>
+            {ALL_LESSONS.map((cl) => <option key={cl.id} value={cl.id}>U{cl.unit.n} L{cl.n} · {cl.title}</option>)}
+          </select>
+        )}
+        {tgt && <div className="soft" style={{ marginTop: 6 }}>{L("Slovíčka se přidají k tématu")} „{tgt.title}“.</div>}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: 20 }}>{L("Slovíčka")} ({keep.length})</span>
+        {dups > 0 && <span className="mute">{dups} {L("už máš – přeskočeno")}</span>}
+      </div>
+      {items.length === 0 && <div className="soft">{L("Nic nového k uložení – všechno už máš, nebo to nebyla probíraná látka.")}</div>}
+      {items.map((w, k) => (
+        <div key={k} className="row" style={{ gap: 8, opacity: w.keep ? 1 : 0.45, alignItems: "flex-start" }}>
+          <input type="checkbox" checked={w.keep} onChange={(e) => setItems(items.map((x, j) => (j === k ? { ...x, keep: e.target.checked } : x)))} style={{ width: 22, height: 22, marginTop: 4 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700 }}>{w.en} <span className="pill" style={{ background: C.seaSoft, color: C.blu }}>{w.lv}</span>{w.dup && <span className="pill" style={{ background: C.amberSoft, color: C.amber, marginLeft: 4 }}>{L("už máš")}</span>}</div>
+            <input type="text" value={w.cz} onChange={(e) => setItems(items.map((x, j) => (j === k ? { ...x, cz: e.target.value } : x)))} style={{ marginTop: 4, padding: "6px 10px", fontSize: 16 }} />
+          </div>
+        </div>
+      ))}
+      {(draft.grammar || []).length > 0 && <div style={{ marginTop: 14 }}><div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>{L("Gramatika")}</div>{draft.grammar.map((g) => <div key={g.name} className="panel" style={{ marginBottom: 8, padding: "10px 14px" }}><b>{g.name}</b><div className="soft">{g.cz}</div></div>)}</div>}
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button className="pri" disabled={busy || (keep.length === 0 && !(draft.grammar || []).length)} onClick={save}>{busy ? "…" : L("Uložit")} {keep.length ? `(${keep.length})` : ""}</button>
+        <button className="sec" onClick={back}>{L("Zahodit")}</button>
+      </div>
+    </div>
+  );
+}
 
 function AddLesson({ data, setData, back, openLesson }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [text, setText] = useState("");
-  const [preview, setPreview] = useState(null);
+  const [previews, setPreviews] = useState([]);
   const [mode, setMode] = useState("photo");
+  const [draft, setDraft] = useState(null);
+  const [summary, setSummary] = useState(null);
 
   async function run(content) {
     setBusy(true); setErr("");
     try {
-      const out = await askClaude([{ role: "user", content }], EXTRACT_SYS());
-      const j = parseJSON(out);
-      const id = uid();
-      const lesson = { id, title: j.title || "Lekce", level: j.level || "", grammar: j.grammar || [], created: Date.now(), unitLesson: findCourseLesson(j.unitLesson) ? j.unitLesson : null };
-      const words = (j.words || []).filter((w) => w.en && w.cz).map((w) => ({ id: uid(), lessonId: id, en: w.en, ipa: w.ipa || "", cz: w.cz, ex: w.ex || "", lv: LEVELS.includes(w.lv) ? w.lv : lesson.level || MY_LEVEL, ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: 0 }));
-      const nd = { ...data, lessons: [...data.lessons, lesson], words: [...data.words, ...words] };
+      const known = [...new Set(data.words.map((w) => lemma(w.en)))].filter(Boolean);
+      const j = parseJSON(await askClaude([{ role: "user", content }], EXTRACT_SYS(known)));
+      // aplikace rozhodne sama: odstraní duplicity, vybere téma, uloží
+      const existing = new Set(data.words.map((w) => lemma(w.en)));
+      const seen = new Set(); const fresh = []; let skipped = 0;
+      (j.words || []).filter((w) => w.en && w.cz).forEach((w) => { const k = lemma(w.en); if (!k || existing.has(k) || seen.has(k)) { skipped++; return; } seen.add(k); fresh.push(w); });
+      const grammar = (j.grammar || []).filter((g) => g && g.name);
+      let target = suggestLesson(data, j, fresh);
+      if (!fresh.length && !grammar.length) { setSummary({ added: 0, skipped, title: target ? data.lessons.find((l) => l.id === target)?.title : j.topic }); setBusy(false); return; }
+      let lessons = data.lessons, lessonId = target, created = false;
+      if (!target) {
+        lessonId = uid(); created = true;
+        lessons = [...lessons, { id: lessonId, title: (j.topic || j.title || "Lekce").trim(), level: j.level || "A2", grammar, created: Date.now(), unitLesson: findCourseLesson(j.unitLesson) ? j.unitLesson : null }];
+      } else {
+        lessons = lessons.map((l) => l.id !== target ? l : { ...l, grammar: [...(l.grammar || []), ...grammar.filter((g) => !(l.grammar || []).some((x) => lemma(x.name) === lemma(g.name)))], unitLesson: l.unitLesson || (findCourseLesson(j.unitLesson) ? j.unitLesson : null) });
+      }
+      const lesson = lessons.find((l) => l.id === lessonId);
+      const words = fresh.map((w) => ({ id: uid(), lessonId, en: w.en.trim(), ipa: w.ipa || "", cz: w.cz.trim(), ex: w.ex || "", lv: LEVELS.includes(w.lv) ? w.lv : lesson.level || "A2", ease: 2.5, interval: 0, reps: 0, lapses: 0, due: 0, seen: 0 }));
+      const nd = { ...data, lessons, words: [...data.words, ...words] };
       setData(nd); await saveData(nd);
-      openLesson(id);
+      setSummary({ added: words.length, skipped, grammar: grammar.length, title: lesson.title, created, lessonId });
     } catch (e) {
       setErr(L("Vytěžení se nepovedlo: ") + e.message + L(". Zkus ostřejší fotku nebo vlož text."));
     }
     setBusy(false);
   }
   async function onFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    let block;
-    if (f.type === "application/pdf") {
-      setPreview(null);
-      block = { type: "document", source: { type: "base64", media_type: "application/pdf", data: await fileToB64(f) } };
-    } else {
-      try {
-        const s = await shrinkImage(f);
-        setPreview(s.preview);
-        block = { type: "image", source: { type: "base64", media_type: s.type, data: s.b64 } };
-      } catch {
-        setPreview(URL.createObjectURL(f));
-        block = { type: "image", source: { type: "base64", media_type: f.type || "image/jpeg", data: await fileToB64(f) } };
+    const files = [...(e.target.files || [])].slice(0, 6);
+    if (!files.length) return;
+    const blocks = []; const pv = [];
+    for (const f of files) {
+      if (f.type === "application/pdf") blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: await fileToB64(f) } });
+      else {
+        try { const s = await shrinkImage(f); pv.push(s.preview); blocks.push({ type: "image", source: { type: "base64", media_type: s.type, data: s.b64 } }); }
+        catch { pv.push(URL.createObjectURL(f)); blocks.push({ type: "image", source: { type: "base64", media_type: f.type || "image/jpeg", data: await fileToB64(f) } }); }
       }
     }
-    run([block, { type: "text", text: "Extract the learning material from this." }]);
+    setPreviews(pv);
+    run([...blocks, { type: "text", text: files.length > 1 ? `These ${files.length} images are pages/photos of ONE lesson. Extract the taught material as a single topic.` : "Extract the taught material from this." }]);
   }
+  if (draft) return <ExtractReview data={data} setData={setData} draft={draft} back={() => setDraft(null)} openLesson={openLesson} />;
+  if (summary) return (
+    <div className="scr">
+      <div className="hero" style={{ background: summary.added ? undefined : "linear-gradient(160deg,#FF9600,#E36D00)", boxShadow: summary.added ? undefined : "0 6px 0 #B85600" }}>
+        <div style={{ fontSize: 40, fontWeight: 800 }}>+{summary.added}</div>
+        <div style={{ fontSize: 18 }}>{summary.added ? `${L("slovíček")} ${summary.created ? L("do nového tématu") : L("do tématu")} „${summary.title}“` : L("Nic nového – všechno už máš, nebo to nebyla probíraná látka.")}</div>
+        {summary.skipped > 0 && <div className="soft" style={{ marginTop: 6 }}>{summary.skipped} {L("už jsi měl – přeskočeno")}</div>}
+        {summary.grammar > 0 && <div className="soft">{summary.grammar} × {L("gramatika")}</div>}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+        {summary.lessonId && <button className="pri" onClick={() => openLesson(summary.lessonId)}>{L("Otevřít téma")}</button>}
+        <button className="sec" onClick={() => { setSummary(null); setPreviews([]); }}>{L("Další fotka")}</button>
+        <button className="sec" onClick={back}>{L("Hotovo")}</button>
+      </div>
+      <div className="mute" style={{ marginTop: 16 }}>{L("Zařazení lze kdykoli změnit v detailu tématu (Sloučit do…, Přejmenovat, Smazat).")}</div>
+    </div>
+  );
   return (
     <div className="scr">
       <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Zpět")}</button>
-      <h1 className="h1" style={{ marginTop: 10 }}>{L("Nová lekce")}</h1>
+      <h1 className="h1" style={{ marginTop: 10 }}>{L("Nový materiál")}</h1>
+      <div className="soft" style={{ marginBottom: 12 }}>{L("Vyfoť nebo vyber i víc stránek z jedné hodiny najednou. Před uložením zkontroluješ slovíčka a zařadíš je k tématu.")}</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <button className="sec" style={mode === "photo" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("photo")}><Camera size={16} /> {L("Fotka / PDF")}</button>
         <button className="sec" style={mode === "text" ? { background: C.ink, color: "#fff", borderColor: C.ink } : {}} onClick={() => setMode("text")}><ClipboardPaste size={16} /> {L("Text")}</button>
@@ -381,11 +513,11 @@ function AddLesson({ data, setData, back, openLesson }) {
               <Camera size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>{L("Vyfotit")}</div><div className="mute">{L("fotoaparátem")}</div>
             </label>
             <label className="tileC" style={{ background: "linear-gradient(160deg,#CE82FF,#9B4DE0)", boxShadow: "0 5px 0 #7A35B8", textAlign: "center", cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
-              <input type="file" accept="image/*,application/pdf" onChange={onFile} style={{ display: "none" }} disabled={busy} />
-              <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>{L("Galerie / soubor")}</div><div className="mute">{L("fotka nebo PDF")}</div>
+              <input type="file" accept="image/*,application/pdf" multiple onChange={onFile} style={{ display: "none" }} disabled={busy} />
+              <Layers size={26} /><div style={{ fontWeight: 800, marginTop: 6 }}>{L("Galerie / soubor")}</div><div className="mute">{L("i více fotek najednou")}</div>
             </label>
           </div>
-          {preview && <div className="panel" style={{ marginTop: 12, textAlign: "center" }}><img src={preview} alt="" style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 10 }} /></div>}
+          {previews.length > 0 && <div className="panel" style={{ marginTop: 12, display: "flex", gap: 8, overflowX: "auto" }}>{previews.map((p, k) => <img key={k} src={p} alt="" style={{ height: 160, borderRadius: 10 }} />)}</div>}
           {busy && <div className="panel" style={{ marginTop: 12, fontWeight: 800, color: C.grnDark }}>{L("Čtu materiál…")}</div>}
         </div>
       ) : (
@@ -395,7 +527,7 @@ function AddLesson({ data, setData, back, openLesson }) {
         </div>
       )}
       <Err msg={err} />
-      {busy && <div className="soft" style={{ marginTop: 12 }}>{L("Hledám slovíčka, překlady, výslovnost a gramatiku. Trvá to asi 15 sekund.")}</div>}
+      {busy && <div className="soft" style={{ marginTop: 12 }}>{L("Hledám probíranou látku – slovíčka, překlady, výslovnost a gramatiku. Zadání cvičení vynechávám.")}</div>}
     </div>
   );
 }
@@ -412,11 +544,25 @@ function LessonDetail({ data, setData, id, back, talk }) {
     const nd = { ...data, lessons: data.lessons.filter((x) => x.id !== id), words: data.words.filter((w) => w.lessonId !== id) };
     setData(nd); await saveData(nd); back();
   }
+  async function rename() {
+    const t = prompt(L("Nový název tématu"), l.title); if (!t || !t.trim()) return;
+    const nd = { ...data, lessons: data.lessons.map((x) => (x.id === id ? { ...x, title: t.trim() } : x)) }; setData(nd); saveData(nd);
+  }
+  async function mergeInto(targetId) {
+    if (!targetId || targetId === id) return;
+    const t = data.lessons.find((x) => x.id === targetId); if (!t) return;
+    if (!confirm(`${L("Sloučit")} „${l.title}“ → „${t.title}“? ${L("Duplicitní slovíčka se vynechají.")}`)) return;
+    const tl = new Set(data.words.filter((w) => w.lessonId === targetId).map((w) => lemma(w.en)));
+    const words = data.words.filter((w) => !(w.lessonId === id && tl.has(lemma(w.en)))).map((w) => (w.lessonId === id ? { ...w, lessonId: targetId } : w));
+    const grammar = [...(t.grammar || []), ...(l.grammar || []).filter((g) => !(t.grammar || []).some((x) => lemma(x.name) === lemma(g.name)))];
+    const nd = { ...data, words, lessons: data.lessons.filter((x) => x.id !== id).map((x) => (x.id === targetId ? { ...x, grammar, unitLesson: x.unitLesson || l.unitLesson || null } : x)), course: data.course.map((c) => (c.preparedLessonId === id ? { ...c, preparedLessonId: targetId } : c)) };
+    setData(nd); await saveData(nd); back();
+  }
   return (
     <div className="scr">
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <button className="soft" onClick={back} style={{ display: "flex", alignItems: "center", gap: 4 }}><ArrowLeft size={16} /> {L("Lekce")}</button>
-        <button className="mute" onClick={remove}>{L("Smazat")}</button>
+        <div style={{ display: "flex", gap: 12 }}><button className="mute" onClick={rename}>{L("Přejmenovat")}</button><button className="mute" onClick={remove}>{L("Smazat")}</button></div>
       </div>
       <h1 className="h1" style={{ marginTop: 10, marginBottom: 6 }}>{l.title}</h1>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -431,6 +577,15 @@ function LessonDetail({ data, setData, id, back, talk }) {
           {ALL_LESSONS.map((cl) => <option key={cl.id} value={cl.id}>U{cl.unit.n} L{cl.n} · {cl.title}</option>)}
         </select>
       </div>
+      {data.lessons.filter((x) => x.id !== id && x.kind !== "topic").length > 0 && (
+        <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="mute">{L("Sloučit do")}:</span>
+          <select value="" onChange={(e) => mergeInto(e.target.value)} style={{ flex: 1, padding: "8px 10px", borderRadius: 12, border: `2px solid ${C.line}`, font: "inherit", fontSize: 16, background: "#fff" }}>
+            <option value="">{L("vyber téma…")}</option>
+            {data.lessons.filter((x) => x.id !== id && x.kind !== "topic").slice().reverse().map((x) => <option key={x.id} value={x.id}>{x.title} ({data.words.filter((w) => w.lessonId === x.id).length})</option>)}
+          </select>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, marginBottom: 4 }}>
         <span style={{ fontWeight: 800, fontSize: 20 }}>{L("Slovíčka")}</span>
         <span className="mute">{ws.filter(isKnown).length} z {ws.length} {L("umím")}</span>
@@ -1494,7 +1649,7 @@ export default function App() {
   else if (tab === "practice") body = <Practice data={data} go={go} />;
   else if (tab === "course") body = <Course data={data} openLesson={(cid) => { setCourseLessonId(cid); setView("course-lesson"); }} startUnitTest={(uid_) => { setTestOpts({ unitId: uid_ }); setView("test"); }} />;
   else body = <><Stats data={data} /><button onClick={() => go("account")} aria-label={L("Účet")} style={{ position: "absolute", top: 20, right: 20, color: C.blu }}><UserCircle size={30} /></button></>;
-  const tabs = [["today", "Dnes", Home], ["course", "Kurz", Map], ["lessons", "Lekce", BookOpen], ["practice", "Trénink", Dumbbell], ["stats", "Statistiky", BarChart3]];
+  const tabs = [["today", "Dnes", Home], ["course", "Kurz", MapIcon], ["lessons", "Témata", BookOpen], ["practice", "Trénink", Dumbbell], ["stats", "Statistiky", BarChart3]];
   return (
     <div className="ef" style={{ position: "relative" }}>
       <style>{css}</style>
